@@ -29,7 +29,8 @@ type apcService struct {
 
 var _ interfaces.APCService = (*apcService)(nil)
 
-func NewServer(ctx context.Context, name, ip string, secondsBetweenSamples time.Duration, receiver chan string) interfaces.APCService {
+func NewServer(ctx context.Context, name, ip string,
+	secondsBetweenSamples time.Duration, receiver chan string) interfaces.APCService {
 	return &apcService{
 		ctx:          ctx,
 		ipAddress:    ip,
@@ -41,7 +42,7 @@ func NewServer(ctx context.Context, name, ip string, secondsBetweenSamples time.
 		rcvr:         receiver,
 	}
 }
-func (a *apcService) Begin() error {
+func (a *apcService) Connect() error {
 
 	if a.activeSession != nil {
 		return nil
@@ -55,14 +56,29 @@ func (a *apcService) Begin() error {
 
 	conn, err := a.dialer.DialContext(ctx, "tcp", a.ipAddress)
 	if err != nil {
-		log.Println("Begin() dial Error: ", err.Error(), ", host: ", a.name, ", context: ", ctx.Err())
+		a.activeSession = nil
+		log.Println("Connect() dial Error: ", err.Error(), ", host: ", a.name, ", context: ", ctx.Err())
 	} else {
 		a.activeSession = conn
+	}
+	return err
+}
+
+func (a *apcService) Begin() error {
+
+	err := a.Connect()
+	if err != nil {
+		log.Println("Begin() dial Error: ", err.Error(), ", host: ", a.name)
+	} else {
 		a.PeriodicUpdateStart()
 	}
 	return err
 }
 func (a *apcService) PeriodicUpdateStart() {
+	if a.periodTicker != nil {
+		a.periodTicker.Reset(a.samplePeriod * time.Second)
+		return
+	}
 	a.periodTicker = time.NewTicker(a.samplePeriod * time.Second)
 
 	go func(rcvr chan string) {
@@ -172,6 +188,12 @@ func (a *apcService) ReceiveMessage() (string, error) {
 	return string(message), err
 }
 func (a *apcService) Request(command string, r chan string) error {
+	if a.activeSession == nil {
+		err := a.Connect()
+		if err != nil {
+			return err
+		}
+	}
 	err := a.SendCommand(command)
 	if err != nil {
 		log.Println("Request::SendCommand() send command error: ", err.Error())
@@ -199,6 +221,7 @@ transact:
 		}
 		r <- command + ": " + msg
 	}
-
+	a.activeSession.Close()
+	a.activeSession = nil
 	return err
 }

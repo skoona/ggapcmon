@@ -37,7 +37,7 @@ func main() {
 		err = fmt.Errorf("Shutdown Signal Received: %v", sig.String())
 	}(systemSignalChannel)
 
-	apc := services.NewServer(ctx, "VServ", HostVserv, 5, msgs)
+	apc := services.NewServer(ctx, "VServ", HostVserv, 60, msgs)
 	defer apc.End()
 	err = apc.Begin()
 	if err != nil {

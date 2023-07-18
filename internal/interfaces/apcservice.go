@@ -5,6 +5,7 @@ type APCService interface {
 	SetName(newValue string)
 	IpAddress() string
 	SetIpAddress(newValue string)
+	Connect() error
 	Begin() error
 	AddEvent(newValue string)
 	AddStatus(newValue string)
