@@ -39,7 +39,10 @@ func main() {
 
 	apc := services.NewServer(ctx, "VServ", HostVserv, 5, msgs)
 	defer apc.End()
-	apc.Begin()
+	err = apc.Begin()
+	if err != nil {
+		log.Panic("main()::Begin() failed: ", err.Error())
+	}
 
 basic:
 	for {
@@ -56,6 +59,4 @@ basic:
 	}
 
 	logger.Println("Shutdown:", err.Error())
-
-	os.Exit(0)
 }

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/binary"
+	"github.com/skoona/ggapcmon/internal/interfaces"
 	"log"
 	"net"
 	"time"
@@ -13,25 +14,7 @@ const (
 	commandEvents = "events"
 )
 
-type APCServer interface {
-	Name() string
-	SetName(newValue string)
-	IpAddress() string
-	SetIpAddress(newValue string)
-	Begin() error
-	AddEvent(newValue string)
-	AddStatus(newValue string)
-	Events() []string
-	Status() []string
-	PeriodicUpdateStart()
-	PeriodicUpdateStop()
-	Request(command string, r chan string) error
-	SendCommand(command string) error
-	ReceiveMessage() (string, error)
-	End()
-}
-
-type apcServer struct {
+type apcService struct {
 	ctx           context.Context
 	ipAddress     string
 	name          string
@@ -40,27 +23,25 @@ type apcServer struct {
 	activeSession net.Conn
 	events        []string
 	status        []string
-	tickerChan    chan bool
 	dialer        net.Dialer
 	rcvr          chan string
 }
 
-var _ APCServer = (*apcServer)(nil)
+var _ interfaces.APCService = (*apcService)(nil)
 
-func NewServer(ctx context.Context, name, ip string, secondsBetweenSamples time.Duration, receiver chan string) APCServer {
-	return &apcServer{
+func NewServer(ctx context.Context, name, ip string, secondsBetweenSamples time.Duration, receiver chan string) interfaces.APCService {
+	return &apcService{
 		ctx:          ctx,
 		ipAddress:    ip,
 		name:         name,
 		samplePeriod: secondsBetweenSamples,
 		status:       []string{},
 		events:       []string{},
-		tickerChan:   make(chan bool),
 		dialer:       net.Dialer{},
 		rcvr:         receiver,
 	}
 }
-func (a *apcServer) Begin() error {
+func (a *apcService) Begin() error {
 
 	if a.activeSession != nil {
 		return nil
@@ -81,46 +62,7 @@ func (a *apcServer) Begin() error {
 	}
 	return err
 }
-func (a *apcServer) End() {
-	if a.activeSession == nil {
-		return
-	}
-
-	a.PeriodicUpdateStop()
-	err := a.activeSession.Close()
-	if err != nil {
-		log.Println("Close() Error: ", err.Error())
-	}
-	a.activeSession = nil
-
-	return
-}
-
-func (a *apcServer) Name() string {
-	return a.name
-}
-func (a *apcServer) SetName(newValue string) {
-	a.name = newValue
-}
-func (a *apcServer) IpAddress() string {
-	return a.ipAddress
-}
-func (a *apcServer) SetIpAddress(newValue string) {
-	a.ipAddress = newValue
-}
-func (a *apcServer) AddEvent(newValue string) {
-	a.events = append(a.events, newValue)
-}
-func (a *apcServer) AddStatus(newValue string) {
-	a.status = append(a.status, newValue)
-}
-func (a *apcServer) Events() []string {
-	return append([]string{}, a.events...)
-}
-func (a *apcServer) Status() []string {
-	return append([]string{}, a.status...)
-}
-func (a *apcServer) PeriodicUpdateStart() {
+func (a *apcService) PeriodicUpdateStart() {
 	a.periodTicker = time.NewTicker(a.samplePeriod * time.Second)
 
 	go func(rcvr chan string) {
@@ -131,9 +73,6 @@ func (a *apcServer) PeriodicUpdateStart() {
 				log.Println("PeriodicUpdateStart() ending: ", a.ctx.Err().Error())
 				break back
 
-			case <-a.tickerChan:
-				break back
-
 			case <-a.periodTicker.C:
 				_ = a.Request(commandStatus, rcvr)
 				_ = a.Request(commandEvents, rcvr)
@@ -142,12 +81,49 @@ func (a *apcServer) PeriodicUpdateStart() {
 		log.Println("PeriodicUpdateStart() ended ")
 	}(a.rcvr)
 }
-func (a *apcServer) PeriodicUpdateStop() {
+func (a *apcService) PeriodicUpdateStop() {
 	a.periodTicker.Stop()
-	a.tickerChan <- true
+}
+func (a *apcService) End() {
+	if a.activeSession == nil {
+		return
+	}
+
+	a.PeriodicUpdateStop()
+	err := a.activeSession.Close()
+	if err != nil {
+		log.Println("End()::Close() Error: ", err.Error())
+	}
+	a.activeSession = nil
 }
 
-func (a *apcServer) SendCommand(command string) error {
+func (a *apcService) Name() string {
+	return a.name
+}
+func (a *apcService) SetName(newValue string) {
+	a.name = newValue
+}
+func (a *apcService) IpAddress() string {
+	return a.ipAddress
+}
+func (a *apcService) SetIpAddress(newValue string) {
+	a.ipAddress = newValue
+}
+
+func (a *apcService) AddEvent(newValue string) {
+	a.events = append(a.events, newValue)
+}
+func (a *apcService) AddStatus(newValue string) {
+	a.status = append(a.status, newValue)
+}
+func (a *apcService) Events() []string {
+	return append([]string{}, a.events...)
+}
+func (a *apcService) Status() []string {
+	return append([]string{}, a.status...)
+}
+
+func (a *apcService) SendCommand(command string) error {
 	var msgLen = uint16(len(command))
 	b := make([]byte, 2)
 
@@ -166,8 +142,7 @@ func (a *apcServer) SendCommand(command string) error {
 
 	return nil
 }
-
-func (a *apcServer) ReceiveMessage() (string, error) {
+func (a *apcService) ReceiveMessage() (string, error) {
 	var msgLen uint16
 	message := []byte{}
 	b := make([]byte, 2)
@@ -196,8 +171,7 @@ func (a *apcServer) ReceiveMessage() (string, error) {
 
 	return string(message), err
 }
-
-func (a *apcServer) Request(command string, r chan string) error {
+func (a *apcService) Request(command string, r chan string) error {
 	err := a.SendCommand(command)
 	if err != nil {
 		log.Println("Request::SendCommand() send command error: ", err.Error())
