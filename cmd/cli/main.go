@@ -20,6 +20,8 @@ const (
 func main() {
 	systemSignalChannel := make(chan os.Signal, 1)
 	msgs := make(chan string, 100)
+	defer close(msgs)
+
 	var err error
 
 	ctx, cancelApc := context.WithCancel(context.Background())
@@ -35,11 +37,9 @@ func main() {
 		err = fmt.Errorf("Shutdown Signal Received: %v", sig.String())
 	}(systemSignalChannel)
 
-	apc := services.NewServer(ctx, "VServ", HostVserv, 5)
-	defer apc.PeriodicUpdateStop()
+	apc := services.NewServer(ctx, "VServ", HostVserv, 5, msgs)
 	defer apc.End()
 	apc.Begin()
-	err = apc.PeriodicUpdateStart(msgs)
 
 basic:
 	for {
@@ -47,8 +47,6 @@ basic:
 		case <-ctx.Done():
 			logger.Println("main::Done() fired:", ctx.Err().Error())
 			err = ctx.Err()
-			apc.PeriodicUpdateStop()
-			apc.End()
 			break basic
 
 		case msg := <-msgs:
@@ -56,5 +54,8 @@ basic:
 			logger.Print("[", parts[0], "] ==> ", parts[1])
 		}
 	}
+
 	logger.Println("Shutdown:", err.Error())
+
+	os.Exit(0)
 }

@@ -23,12 +23,12 @@ type APCServer interface {
 	AddStatus(newValue string)
 	Events() []string
 	Status() []string
-	PeriodicUpdateStart(r chan string) error
-	PeriodicUpdateStop() error
+	PeriodicUpdateStart()
+	PeriodicUpdateStop()
 	Request(command string, r chan string) error
 	SendCommand(command string) error
 	ReceiveMessage() (string, error)
-	End() error
+	End()
 }
 
 type apcServer struct {
@@ -42,11 +42,12 @@ type apcServer struct {
 	status        []string
 	tickerChan    chan bool
 	dialer        net.Dialer
+	rcvr          chan string
 }
 
 var _ APCServer = (*apcServer)(nil)
 
-func NewServer(ctx context.Context, name, ip string, secondsBetweenSamples time.Duration) APCServer {
+func NewServer(ctx context.Context, name, ip string, secondsBetweenSamples time.Duration, receiver chan string) APCServer {
 	return &apcServer{
 		ctx:          ctx,
 		ipAddress:    ip,
@@ -56,6 +57,7 @@ func NewServer(ctx context.Context, name, ip string, secondsBetweenSamples time.
 		events:       []string{},
 		tickerChan:   make(chan bool),
 		dialer:       net.Dialer{},
+		rcvr:         receiver,
 	}
 }
 func (a *apcServer) Begin() error {
@@ -75,20 +77,23 @@ func (a *apcServer) Begin() error {
 		log.Println("Begin() dial Error: ", err.Error(), ", host: ", a.name, ", context: ", ctx.Err())
 	} else {
 		a.activeSession = conn
+		a.PeriodicUpdateStart()
 	}
 	return err
 }
-func (a *apcServer) End() error {
+func (a *apcServer) End() {
 	if a.activeSession == nil {
-		return nil
+		return
 	}
+
+	a.PeriodicUpdateStop()
 	err := a.activeSession.Close()
 	if err != nil {
 		log.Println("Close() Error: ", err.Error())
 	}
 	a.activeSession = nil
 
-	return err
+	return
 }
 
 func (a *apcServer) Name() string {
@@ -115,7 +120,7 @@ func (a *apcServer) Events() []string {
 func (a *apcServer) Status() []string {
 	return append([]string{}, a.status...)
 }
-func (a *apcServer) PeriodicUpdateStart(r chan string) error {
+func (a *apcServer) PeriodicUpdateStart() {
 	a.periodTicker = time.NewTicker(a.samplePeriod * time.Second)
 
 	go func(rcvr chan string) {
@@ -123,7 +128,6 @@ func (a *apcServer) PeriodicUpdateStart(r chan string) error {
 		for {
 			select {
 			case <-a.ctx.Done():
-				close(rcvr)
 				log.Println("PeriodicUpdateStart() ending: ", a.ctx.Err().Error())
 				break back
 
@@ -136,14 +140,11 @@ func (a *apcServer) PeriodicUpdateStart(r chan string) error {
 			}
 		}
 		log.Println("PeriodicUpdateStart() ended ")
-	}(r)
-
-	return nil
+	}(a.rcvr)
 }
-func (a *apcServer) PeriodicUpdateStop() error {
+func (a *apcServer) PeriodicUpdateStop() {
 	a.periodTicker.Stop()
 	a.tickerChan <- true
-	return nil
 }
 
 func (a *apcServer) SendCommand(command string) error {
