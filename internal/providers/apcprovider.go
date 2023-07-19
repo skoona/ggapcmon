@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"encoding/binary"
+	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"log"
 	"net"
@@ -16,14 +17,13 @@ const (
 
 type apcProvider struct {
 	ctx           context.Context
-	ipAddress     string
-	name          string
+	host          entities.ApcHost
 	periodTicker  *time.Ticker
-	samplePeriod  time.Duration
 	activeSession net.Conn
 	events        []string
 	status        []string
 	rcvr          chan []string
+	log           *log.Logger
 }
 
 var (
@@ -31,18 +31,16 @@ var (
 	_ interfaces.Provider    = (*apcProvider)(nil)
 )
 
-func NewAPCProvider(ctx context.Context, name, ip string,
-	secondsBetweenSamples time.Duration, receiver chan []string) (interfaces.ApcProvider, error) {
+func NewAPCProvider(ctx context.Context, host entities.ApcHost, receiver chan []string, log *log.Logger) (interfaces.ApcProvider, error) {
 	provider := &apcProvider{
-		ctx:          ctx,
-		ipAddress:    ip,
-		name:         name,
-		samplePeriod: secondsBetweenSamples,
-		status:       []string{},
-		events:       []string{},
-		rcvr:         receiver,
+		ctx:    ctx,
+		host:   host,
+		status: []string{},
+		events: []string{},
+		rcvr:   receiver,
+		log:    log,
 	}
-	err := provider.Begin()
+	err := provider.begin()
 	if err != nil {
 		return nil, err
 	} else {
@@ -50,8 +48,8 @@ func NewAPCProvider(ctx context.Context, name, ip string,
 	}
 }
 
-// Connect dials th apc server and establishes a connection
-func (a *apcProvider) Connect() error {
+// connect dials th apc server and establishes a connection
+func (a *apcProvider) connect() error {
 
 	if a.activeSession != nil {
 		return nil
@@ -64,128 +62,122 @@ func (a *apcProvider) Connect() error {
 	defer cancel()
 
 	var d net.Dialer
-	conn, err := d.DialContext(ctx, "tcp", a.ipAddress)
+	conn, err := d.DialContext(ctx, "tcp", a.host.IpAddress)
 	if err != nil {
 		a.activeSession = nil
-		log.Println("Connect() dial Error: ", err.Error(), ", host: ", a.name, ", context: ", ctx.Err())
+		a.log.Println("connect() dial Error: ", err.Error(), ", host: ", a.host.Name, ", context: ", ctx.Err())
 	} else {
 		a.activeSession = conn
 	}
 	return err
 }
 
-// Begin connects to apc server and starts periodic data collection
-func (a *apcProvider) Begin() error {
+// begin connects to apc server and starts periodic data collection
+func (a *apcProvider) begin() error {
 
-	err := a.Connect()
+	err := a.connect()
 	if err != nil {
-		log.Println("Begin() Connect Error: ", err.Error(), ", host: ", a.name)
+		a.log.Println("begin() connect Error: ", err.Error(), ", host: ", a.host.Name)
 	} else {
-		a.PeriodicUpdateStart()
+		a.periodicUpdateStart()
 	}
 	return err
 }
 
-// PeriodicUpdateStart creates or reset the ticker and go routine
+// periodicUpdateStart creates or reset the ticker and go routine
 // which issues apc requests according to ticker's period
-func (a *apcProvider) PeriodicUpdateStart() {
+func (a *apcProvider) periodicUpdateStart() {
 	if a.periodTicker != nil {
-		a.periodTicker.Reset(a.samplePeriod * time.Second)
+		a.periodTicker.Reset(a.host.SecondsPerSample * time.Second)
 		return
 	}
-	a.periodTicker = time.NewTicker(a.samplePeriod * time.Second)
+	a.periodTicker = time.NewTicker(a.host.SecondsPerSample * time.Second)
 
-	go func(rcvr chan []string) {
+	go func(s *apcProvider) {
 	back:
 		for {
 			select {
-			case <-a.ctx.Done():
-				log.Println("PeriodicUpdateStart(", a.Name(), ") ending: ", a.ctx.Err().Error())
+			case <-s.ctx.Done():
+				a.log.Println("periodicUpdateStart(", s.Name(), ") ending: ", s.ctx.Err().Error())
 				break back
 
-			case <-a.periodTicker.C:
-				_ = a.Request(commandStatus, rcvr)
-				_ = a.Request(commandEvents, rcvr)
+			case <-s.periodTicker.C:
+				_ = s.request(commandStatus, a.rcvr)
+				_ = s.request(commandEvents, a.rcvr)
 			}
 		}
-		log.Println("PeriodicUpdateStart(", a.Name(), ") ended ")
-	}(a.rcvr)
+		a.log.Println("periodicUpdateStart(", a.Name(), ") ended ")
+	}(a)
 }
 
-// PeriodicUpdateStop stops the ticker driving apc queries
-func (a *apcProvider) PeriodicUpdateStop() {
-	log.Println("PeriodicUpdateStop(", a.Name(), ") called.")
+// periodicUpdateStop stops the ticker driving apc queries
+func (a *apcProvider) periodicUpdateStop() {
+	a.log.Println("periodicUpdateStop(", a.Name(), ") called.")
 	a.periodTicker.Stop()
 }
 
 // End closes the apc connection and stops go routines
 func (a *apcProvider) Shutdown() {
-	log.Println("Shutdown(", a.Name(), ") called.")
+	a.log.Println("ApcProvider::Shutdown(", a.Name(), ") called.")
 	if a.activeSession == nil {
 		return
 	}
 
-	a.PeriodicUpdateStop()
+	a.periodicUpdateStop()
 	err := a.activeSession.Close()
 	if err != nil {
-		log.Println("Shutdown()::Close() Error: ", err.Error())
+		a.log.Println("ApcProvider::Shutdown()::Close(", a.Name(), ") Error: ", err.Error())
 	}
 	a.activeSession = nil
 }
 
 func (a *apcProvider) Name() string {
-	return a.name
-}
-func (a *apcProvider) SetName(newValue string) {
-	a.name = newValue
+	return a.host.Name
 }
 func (a *apcProvider) IpAddress() string {
-	return a.ipAddress
-}
-func (a *apcProvider) SetIpAddress(newValue string) {
-	a.ipAddress = newValue
+	return a.host.IpAddress
 }
 
-func (a *apcProvider) AddEvent(newValue string) {
+func (a *apcProvider) addEvent(newValue string) {
 	a.events = append(a.events, newValue)
 }
-func (a *apcProvider) AddStatus(newValue string) {
+func (a *apcProvider) addStatus(newValue string) {
 	a.status = append(a.status, newValue)
 }
-func (a *apcProvider) Events() []string {
+func (a *apcProvider) eventsSafeCopy() []string {
 	return append([]string{}, a.events...)
 }
-func (a *apcProvider) Status() []string {
+func (a *apcProvider) statusSafeCopy() []string {
 	return append([]string{}, a.status...)
 }
 
-func (a *apcProvider) SendCommand(command string) error {
+func (a *apcProvider) sendCommand(command string) error {
 	var msgLen = uint16(len(command))
 	b := make([]byte, 2)
 
 	binary.BigEndian.PutUint16(b, msgLen)
 	_, err := a.activeSession.Write(b)
 	if err != nil {
-		log.Println("SendCommand() write len error: ", err.Error())
+		a.log.Println("sendCommand() write len error: ", err.Error())
 		return err
 	}
 
 	_, err = a.activeSession.Write([]byte(command))
 	if err != nil {
-		log.Println("SendCommand() write command error: ", err.Error())
+		a.log.Println("sendCommand() write command error: ", err.Error())
 		return err
 	}
 
 	return nil
 }
-func (a *apcProvider) ReceiveMessage() (string, error) {
+func (a *apcProvider) receiveMessage() (string, error) {
 	var msgLen uint16
 	message := []byte{}
 	b := make([]byte, 2)
 
 	read, err := a.activeSession.Read(b)
 	if err != nil {
-		log.Println("ReceiveMessage() read len error: ", err.Error())
+		a.log.Println("receiveMessage() read len error: ", err.Error())
 		return "", err
 	}
 
@@ -198,7 +190,7 @@ func (a *apcProvider) ReceiveMessage() (string, error) {
 
 	read, err = a.activeSession.Read(line)
 	if err != nil {
-		log.Println("ReceiveMessage() read message error: ", err.Error())
+		a.log.Println("receiveMessage() read message error: ", err.Error())
 		return string(message), err
 	}
 	if read > 2 {
@@ -208,18 +200,18 @@ func (a *apcProvider) ReceiveMessage() (string, error) {
 	return string(message), err
 }
 
-// Request gathers a list of responses for each command
+// request gathers a list of responses for each command
 // returns a string slice over the channel
-func (a *apcProvider) Request(command string, r chan []string) error {
+func (a *apcProvider) request(command string, r chan []string) error {
 	if a.activeSession == nil {
-		err := a.Connect()
+		err := a.connect()
 		if err != nil {
 			return err
 		}
 	}
-	err := a.SendCommand(command)
+	err := a.sendCommand(command)
 	if err != nil {
-		log.Println("Request::SendCommand() send command error: ", err.Error())
+		a.log.Println("request::sendCommand() send command error: ", err.Error())
 		return err
 	}
 	if command == commandEvents {
@@ -230,7 +222,7 @@ func (a *apcProvider) Request(command string, r chan []string) error {
 
 transact:
 	for err == nil {
-		msg, err := a.ReceiveMessage()
+		msg, err := a.receiveMessage()
 		if err != nil {
 			break transact
 		}
@@ -238,18 +230,18 @@ transact:
 			break transact
 		}
 		if command == commandEvents {
-			a.AddEvent(command + ": " + msg)
+			a.addEvent(command + ": " + msg)
 		} else {
-			a.AddStatus(command + ": " + msg)
+			a.addStatus(command + ": " + msg)
 		}
 	}
 	a.activeSession.Close()
 	a.activeSession = nil
 
 	if command == commandEvents {
-		r <- a.Events()
+		r <- a.eventsSafeCopy()
 	} else {
-		r <- a.Status()
+		r <- a.statusSafeCopy()
 	}
 
 	return err
