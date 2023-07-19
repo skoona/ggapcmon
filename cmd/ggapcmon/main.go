@@ -13,13 +13,6 @@ import (
 	"time"
 )
 
-const (
-	HostVServ     = "10.100.1.3:3551"
-	HostVServName = "VServ"
-	HostPve       = "10.100.1.4:3551"
-	HostPveName   = "PVE"
-)
-
 func main() {
 	var err error
 	logger := log.New(os.Stdout, "[DEBUG] ", log.Lmicroseconds|log.Lshortfile)

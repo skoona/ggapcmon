@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"github.com/skoona/ggapcmon/internal/providers"
@@ -19,6 +20,9 @@ type service struct {
 var _ interfaces.Service = (*service)(nil)
 
 func NewService(ctx context.Context, hosts []entities.ApcHost, log *log.Logger) (interfaces.Service, error) {
+	if len(hosts) == 0 {
+		return nil, errors.New("hosts param cannot be empty.")
+	}
 	s := &service{
 		ctx:        ctx,
 		providers:  map[string]interfaces.Provider{},

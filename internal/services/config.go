@@ -25,23 +25,24 @@ var _ interfaces.Configuration = (*config)(nil)
 
 func NewConfig(prefs fyne.Preferences, log *log.Logger) (interfaces.Configuration, error) {
 	var err error
-	hosts := map[string]entities.ApcHost{}
+	var hosts map[string]entities.ApcHost
 
 	defaultHosts := map[string]entities.ApcHost{
-		HostVServ:   entities.ApcHost{IpAddress: HostVServ, Name: HostVServName, SecondsPerSample: 33},
-		HostPveName: entities.ApcHost{IpAddress: HostPve, Name: HostPveName, SecondsPerSample: 37},
+		HostVServName: entities.ApcHost{IpAddress: HostVServ, Name: HostVServName, SecondsPerSample: 33},
+		HostPveName:   entities.ApcHost{IpAddress: HostPve, Name: HostPveName, SecondsPerSample: 37},
 	}
 
 	hostString := prefs.String(HostsPrefs)
-	if hostString != "" {
+	if hostString != "" && len(hostString) > 16 {
 		log.Println("NewConfig() load preferences succeeded ")
 		err = json.Unmarshal([]byte(hostString), &hosts)
 		if err != nil {
 			log.Println("NewConfig() Unmarshal failed: ", err.Error())
 		}
-	} else {
+	}
+	if len(hosts) == 0 {
 		log.Println("NewConfig() load preferences failed using defaults ")
-		save, err := json.Marshal(hosts)
+		save, err := json.Marshal(defaultHosts)
 		if err != nil {
 			log.Println("NewConfig() Marshal saving prefs failed: ", err.Error())
 		}

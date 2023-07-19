@@ -103,6 +103,7 @@ func (a *apcProvider) periodicUpdateStart() {
 
 			case <-s.periodTicker.C:
 				_ = s.request(commandStatus, a.rcvr)
+				time.Sleep(16 * time.Millisecond)
 				_ = s.request(commandEvents, a.rcvr)
 			}
 		}
@@ -158,13 +159,13 @@ func (a *apcProvider) sendCommand(command string) error {
 	binary.BigEndian.PutUint16(b, msgLen)
 	_, err := a.activeSession.Write(b)
 	if err != nil {
-		a.log.Println("sendCommand() write len error: ", err.Error())
+		a.log.Println("ApcProvider::sendCommand(", a.Name(), ") write len error: ", err.Error())
 		return err
 	}
 
 	_, err = a.activeSession.Write([]byte(command))
 	if err != nil {
-		a.log.Println("sendCommand() write command error: ", err.Error())
+		a.log.Println("ApcProvider::sendCommand(", a.Name(), ") write command error: ", err.Error())
 		return err
 	}
 
@@ -177,7 +178,7 @@ func (a *apcProvider) receiveMessage() (string, error) {
 
 	read, err := a.activeSession.Read(b)
 	if err != nil {
-		a.log.Println("receiveMessage() read len error: ", err.Error())
+		a.log.Println("ApcProvider::receiveMessage(", a.Name(), ") read len error: ", err.Error())
 		return "", err
 	}
 
@@ -190,7 +191,7 @@ func (a *apcProvider) receiveMessage() (string, error) {
 
 	read, err = a.activeSession.Read(line)
 	if err != nil {
-		a.log.Println("receiveMessage() read message error: ", err.Error())
+		a.log.Println("ApcProvider::receiveMessage(", a.Name(), ") read message error: ", err.Error())
 		return string(message), err
 	}
 	if read > 2 {
@@ -209,11 +210,12 @@ func (a *apcProvider) request(command string, r chan []string) error {
 			return err
 		}
 	}
+
 	err := a.sendCommand(command)
 	if err != nil {
-		a.log.Println("request::sendCommand() send command error: ", err.Error())
 		return err
 	}
+
 	if command == commandEvents {
 		a.events = a.events[:0]
 	} else {
@@ -234,6 +236,7 @@ transact:
 		} else {
 			a.addStatus(command + ": " + msg)
 		}
+		time.Sleep(64 * time.Millisecond) // let apcupsd breath a little
 	}
 	a.activeSession.Close()
 	a.activeSession = nil
