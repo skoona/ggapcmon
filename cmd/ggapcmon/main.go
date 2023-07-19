@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/skoona/ggapcmon/internal/entities"
+	"fyne.io/fyne/v2/app"
 	"github.com/skoona/ggapcmon/internal/services"
 	"log"
 	"os"
@@ -28,6 +28,14 @@ func main() {
 	ctx, cancelApc := context.WithCancel(context.Background())
 	defer cancelApc()
 
+	gui := app.NewWithID("net.skoona.project.ggapcmon")
+	logger.Print("main()::RootURI: ", gui.Storage().RootURI().Path())
+
+	cfg, err := services.NewConfig(gui.Preferences(), logger)
+	if err != nil {
+		log.Panic("main()::NewConfig() failed: ", err.Error())
+	}
+
 	go func(stopFlag chan os.Signal) {
 		signal.Notify(stopFlag, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-stopFlag // wait on ctrl-c
@@ -36,13 +44,7 @@ func main() {
 		err = fmt.Errorf("Shutdown Signal Received: %v", sig.String())
 	}(shutdownSignals)
 
-	// get from fyne.Preferences
-	hosts := []entities.ApcHost{
-		{IpAddress: HostVServ, Name: HostVServName, SecondsPerSample: 33},
-		{IpAddress: HostPve, Name: HostPveName, SecondsPerSample: 37},
-	}
-
-	service, err := services.NewService(ctx, hosts, logger)
+	service, err := services.NewService(ctx, cfg.Hosts(), logger)
 	if err != nil {
 		log.Panic("main()::Service startup() failed: ", err.Error())
 	}
@@ -56,15 +58,15 @@ basic:
 			err = ctx.Err()
 			break basic
 
-		case msg := <-service.HostMessageChannel(hosts[0].Name):
+		case msg := <-service.HostMessageChannel(services.HostPveName):
 			for idx, item := range msg {
 				parts := strings.SplitN(item, ": ", 2)
-				logger.Print("{", hosts[0].Name, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
+				logger.Print("{", services.HostPveName, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
 			}
-		case msg := <-service.HostMessageChannel(hosts[1].Name):
+		case msg := <-service.HostMessageChannel(services.HostVServName):
 			for idx, item := range msg {
 				parts := strings.SplitN(item, ": ", 2)
-				logger.Print("{", hosts[1].Name, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
+				logger.Print("{", services.HostVServName, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
 			}
 		}
 	}
