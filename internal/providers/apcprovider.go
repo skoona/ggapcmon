@@ -1,4 +1,4 @@
-package services
+package providers
 
 import (
 	"context"
@@ -14,7 +14,7 @@ const (
 	commandEvents = "events"
 )
 
-type apcService struct {
+type apcProvider struct {
 	ctx           context.Context
 	ipAddress     string
 	name          string
@@ -23,26 +23,35 @@ type apcService struct {
 	activeSession net.Conn
 	events        []string
 	status        []string
-	dialer        net.Dialer
-	rcvr          chan string
+	rcvr          chan []string
 }
 
-var _ interfaces.APCService = (*apcService)(nil)
+var (
+	_ interfaces.ApcProvider = (*apcProvider)(nil)
+	_ interfaces.Provider    = (*apcProvider)(nil)
+)
 
-func NewServer(ctx context.Context, name, ip string,
-	secondsBetweenSamples time.Duration, receiver chan string) interfaces.APCService {
-	return &apcService{
+func NewAPCProvider(ctx context.Context, name, ip string,
+	secondsBetweenSamples time.Duration, receiver chan []string) (interfaces.ApcProvider, error) {
+	provider := &apcProvider{
 		ctx:          ctx,
 		ipAddress:    ip,
 		name:         name,
 		samplePeriod: secondsBetweenSamples,
 		status:       []string{},
 		events:       []string{},
-		dialer:       net.Dialer{},
 		rcvr:         receiver,
 	}
+	err := provider.Begin()
+	if err != nil {
+		return nil, err
+	} else {
+		return provider, nil
+	}
 }
-func (a *apcService) Connect() error {
+
+// Connect dials th apc server and establishes a connection
+func (a *apcProvider) Connect() error {
 
 	if a.activeSession != nil {
 		return nil
@@ -54,7 +63,8 @@ func (a *apcService) Connect() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	conn, err := a.dialer.DialContext(ctx, "tcp", a.ipAddress)
+	var d net.Dialer
+	conn, err := d.DialContext(ctx, "tcp", a.ipAddress)
 	if err != nil {
 		a.activeSession = nil
 		log.Println("Connect() dial Error: ", err.Error(), ", host: ", a.name, ", context: ", ctx.Err())
@@ -64,29 +74,33 @@ func (a *apcService) Connect() error {
 	return err
 }
 
-func (a *apcService) Begin() error {
+// Begin connects to apc server and starts periodic data collection
+func (a *apcProvider) Begin() error {
 
 	err := a.Connect()
 	if err != nil {
-		log.Println("Begin() dial Error: ", err.Error(), ", host: ", a.name)
+		log.Println("Begin() Connect Error: ", err.Error(), ", host: ", a.name)
 	} else {
 		a.PeriodicUpdateStart()
 	}
 	return err
 }
-func (a *apcService) PeriodicUpdateStart() {
+
+// PeriodicUpdateStart creates or reset the ticker and go routine
+// which issues apc requests according to ticker's period
+func (a *apcProvider) PeriodicUpdateStart() {
 	if a.periodTicker != nil {
 		a.periodTicker.Reset(a.samplePeriod * time.Second)
 		return
 	}
 	a.periodTicker = time.NewTicker(a.samplePeriod * time.Second)
 
-	go func(rcvr chan string) {
+	go func(rcvr chan []string) {
 	back:
 		for {
 			select {
 			case <-a.ctx.Done():
-				log.Println("PeriodicUpdateStart() ending: ", a.ctx.Err().Error())
+				log.Println("PeriodicUpdateStart(", a.Name(), ") ending: ", a.ctx.Err().Error())
 				break back
 
 			case <-a.periodTicker.C:
@@ -94,13 +108,19 @@ func (a *apcService) PeriodicUpdateStart() {
 				_ = a.Request(commandEvents, rcvr)
 			}
 		}
-		log.Println("PeriodicUpdateStart() ended ")
+		log.Println("PeriodicUpdateStart(", a.Name(), ") ended ")
 	}(a.rcvr)
 }
-func (a *apcService) PeriodicUpdateStop() {
+
+// PeriodicUpdateStop stops the ticker driving apc queries
+func (a *apcProvider) PeriodicUpdateStop() {
+	log.Println("PeriodicUpdateStop(", a.Name(), ") called.")
 	a.periodTicker.Stop()
 }
-func (a *apcService) End() {
+
+// End closes the apc connection and stops go routines
+func (a *apcProvider) Shutdown() {
+	log.Println("Shutdown(", a.Name(), ") called.")
 	if a.activeSession == nil {
 		return
 	}
@@ -108,38 +128,38 @@ func (a *apcService) End() {
 	a.PeriodicUpdateStop()
 	err := a.activeSession.Close()
 	if err != nil {
-		log.Println("End()::Close() Error: ", err.Error())
+		log.Println("Shutdown()::Close() Error: ", err.Error())
 	}
 	a.activeSession = nil
 }
 
-func (a *apcService) Name() string {
+func (a *apcProvider) Name() string {
 	return a.name
 }
-func (a *apcService) SetName(newValue string) {
+func (a *apcProvider) SetName(newValue string) {
 	a.name = newValue
 }
-func (a *apcService) IpAddress() string {
+func (a *apcProvider) IpAddress() string {
 	return a.ipAddress
 }
-func (a *apcService) SetIpAddress(newValue string) {
+func (a *apcProvider) SetIpAddress(newValue string) {
 	a.ipAddress = newValue
 }
 
-func (a *apcService) AddEvent(newValue string) {
+func (a *apcProvider) AddEvent(newValue string) {
 	a.events = append(a.events, newValue)
 }
-func (a *apcService) AddStatus(newValue string) {
+func (a *apcProvider) AddStatus(newValue string) {
 	a.status = append(a.status, newValue)
 }
-func (a *apcService) Events() []string {
+func (a *apcProvider) Events() []string {
 	return append([]string{}, a.events...)
 }
-func (a *apcService) Status() []string {
+func (a *apcProvider) Status() []string {
 	return append([]string{}, a.status...)
 }
 
-func (a *apcService) SendCommand(command string) error {
+func (a *apcProvider) SendCommand(command string) error {
 	var msgLen = uint16(len(command))
 	b := make([]byte, 2)
 
@@ -158,7 +178,7 @@ func (a *apcService) SendCommand(command string) error {
 
 	return nil
 }
-func (a *apcService) ReceiveMessage() (string, error) {
+func (a *apcProvider) ReceiveMessage() (string, error) {
 	var msgLen uint16
 	message := []byte{}
 	b := make([]byte, 2)
@@ -187,7 +207,10 @@ func (a *apcService) ReceiveMessage() (string, error) {
 
 	return string(message), err
 }
-func (a *apcService) Request(command string, r chan string) error {
+
+// Request gathers a list of responses for each command
+// returns a string slice over the channel
+func (a *apcProvider) Request(command string, r chan []string) error {
 	if a.activeSession == nil {
 		err := a.Connect()
 		if err != nil {
@@ -215,13 +238,19 @@ transact:
 			break transact
 		}
 		if command == commandEvents {
-			a.AddEvent(msg)
+			a.AddEvent(command + ": " + msg)
 		} else {
-			a.AddStatus(msg)
+			a.AddStatus(command + ": " + msg)
 		}
-		r <- command + ": " + msg
 	}
 	a.activeSession.Close()
 	a.activeSession = nil
+
+	if command == commandEvents {
+		r <- a.Events()
+	} else {
+		r <- a.Status()
+	}
+
 	return err
 }

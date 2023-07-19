@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/skoona/ggapcmon/internal/services"
+	"github.com/skoona/ggapcmon/internal/providers"
 	"log"
 	"os"
 	"os/signal"
@@ -19,8 +19,10 @@ const (
 
 func main() {
 	systemSignalChannel := make(chan os.Signal, 1)
-	msgs := make(chan string, 100)
+	msgs := make(chan []string, 16)
 	defer close(msgs)
+	msgsB := make(chan []string, 16)
+	defer close(msgsB)
 
 	var err error
 
@@ -37,12 +39,17 @@ func main() {
 		err = fmt.Errorf("Shutdown Signal Received: %v", sig.String())
 	}(systemSignalChannel)
 
-	apc := services.NewServer(ctx, "VServ", HostVserv, 60, msgs)
-	defer apc.End()
-	err = apc.Begin()
+	apc, err := providers.NewAPCProvider(ctx, "VServ", HostVserv, 6, msgs)
 	if err != nil {
-		log.Panic("main()::Begin() failed: ", err.Error())
+		log.Panic("main()::Begin(A) failed: ", err.Error())
 	}
+	defer apc.Shutdown()
+
+	apcB, err := providers.NewAPCProvider(ctx, "PVE", HostPve, 7, msgsB)
+	if err != nil {
+		log.Panic("main()::Begin(B) failed: ", err.Error())
+	}
+	defer apcB.Shutdown()
 
 basic:
 	for {
@@ -52,9 +59,16 @@ basic:
 			err = ctx.Err()
 			break basic
 
+		case msg := <-msgsB:
+			for idx, item := range msg {
+				parts := strings.SplitN(item, ": ", 2)
+				logger.Print("{", apc.Name(), "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
+			}
 		case msg := <-msgs:
-			parts := strings.SplitN(msg, ": ", 2)
-			logger.Print("[", parts[0], "] ==> ", parts[1])
+			for idx, item := range msg {
+				parts := strings.SplitN(item, ": ", 2)
+				logger.Print("{", apcB.Name(), "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
+			}
 		}
 	}
 
