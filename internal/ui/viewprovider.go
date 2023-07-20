@@ -3,17 +3,20 @@ package ui
 import (
 	"context"
 	"fyne.io/fyne/v2"
+	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"log"
 )
 
 type viewProvider struct {
-	ctx         context.Context
-	service     interfaces.Service
-	mainWindow  fyne.Window
-	prefsWindow fyne.Window
-	log         *log.Logger
-	cfg         interfaces.Configuration
+	ctx           context.Context
+	service       interfaces.Service
+	mainWindow    fyne.Window
+	prefsWindow   fyne.Window
+	log           *log.Logger
+	cfg           interfaces.Configuration
+	prefsHostKeys []string
+	prefsHost     entities.ApcHost
 }
 
 var (
@@ -30,11 +33,11 @@ func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service 
 		mainWindow:  fyne.CurrentApp().NewWindow("ggAPC Monitor"),
 		prefsWindow: fyne.CurrentApp().NewWindow("Preferences"),
 	}
-	view.mainWindow.Resize(fyne.NewSize(1025, 756))
+	view.mainWindow.Resize(fyne.NewSize(1024, 756))
 	view.mainWindow.SetCloseIntercept(func() { view.mainWindow.Hide() })
 	view.mainWindow.SetMaster()
 
-	view.prefsWindow.Resize(fyne.NewSize(800, 600))
+	view.prefsWindow.Resize(fyne.NewSize(600, 800))
 	view.prefsWindow.SetCloseIntercept(func() { view.prefsWindow.Hide() })
 
 	view.SknTrayMenu()

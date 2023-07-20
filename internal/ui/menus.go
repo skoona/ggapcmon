@@ -3,7 +3,7 @@ package ui
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/driver/desktop"
-	"fyne.io/fyne/v2/theme"
+	"github.com/skoona/ggapcmon/internal/commons"
 	"net/url"
 )
 
@@ -24,7 +24,7 @@ func (v *viewProvider) SknTrayMenu() {
 				v.ShowPrefsPage()
 			}))
 		desk.SetSystemTrayMenu(m)
-		desk.SetSystemTrayIcon(theme.VisibilityIcon())
+		desk.SetSystemTrayIcon(commons.SknSelectResource("apcupsd"))
 	}
 }
 func (v *viewProvider) SknMenus() {

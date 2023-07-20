@@ -22,6 +22,9 @@ func Keys[M ~map[K]V, K comparable, V any](m M) []K {
 	return r
 }
 
+// ChangeTimeFormat converts APC timestamp to something more human readable
+// time.RFC1123, time.RFC3339 are good choices
+// returns local time version of value
 func ChangeTimeFormat(timeString string, format string) string {
 	if format == "" {
 		format = time.RFC1123

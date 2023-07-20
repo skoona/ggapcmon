@@ -2,7 +2,7 @@
 ApcProvider
 Connects to an APC Host and provides slices of the Events and Status topics
 on a period cycle declared in the host mopdel as network sampling period.
-Slices are return over a channel to whoever is listening.
+Slices are returned over a seperate channels to whoever is listening.
 */
 package providers
 

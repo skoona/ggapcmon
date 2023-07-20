@@ -9,6 +9,7 @@ type ApcHost struct {
 	GraphingSamplePeriod time.Duration
 	Enabled              bool
 	TrayIcon             bool
+	State                string
 }
 
 func NewApcHost(name, ip string, networkSamplePeriod, graphingSamplePeriod time.Duration, enable, trayIcon bool) *ApcHost {
@@ -19,5 +20,6 @@ func NewApcHost(name, ip string, networkSamplePeriod, graphingSamplePeriod time.
 		GraphingSamplePeriod: graphingSamplePeriod,
 		Enabled:              enable,
 		TrayIcon:             trayIcon,
+		State:                "unknown", // unknown, onbatt, charging, online, unplugged
 	}
 }

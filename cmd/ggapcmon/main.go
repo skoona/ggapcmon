@@ -49,6 +49,7 @@ func main() {
 	defer vp.Shutdown()
 
 	go func() {
+		logger.Println("main::Shutdown Listener BEGIN ")
 	basic:
 		for {
 			select {
@@ -78,7 +79,7 @@ func main() {
 			}
 		}
 
-		logger.Println("main::Shutdown Listener Ended ", err.Error())
+		logger.Println("main::Shutdown Listener END ", err.Error())
 	}()
 
 	vp.ShowMainPage()

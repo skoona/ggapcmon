@@ -40,7 +40,6 @@ func (s *service) begin() error {
 failure:
 	for _, host := range s.cfg.Hosts() {
 		if host.Enabled {
-
 			s.publishers[host.Name] = *entities.NewChannelTuple(16)
 			apc, err := providers.NewAPCProvider(s.ctx, host, s.publishers[host.Name], s.log)
 			if err != nil {
