@@ -1,8 +1,15 @@
+/*
+ApcProvider
+Connects to an APC Host and provides slices of the Events and Status topics
+on a period cycle declared in the host mopdel as network sampling period.
+Slices are return over a channel to whoever is listening.
+*/
 package providers
 
 import (
 	"context"
 	"encoding/binary"
+	"github.com/skoona/ggapcmon/internal/commons"
 	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"log"
@@ -23,7 +30,7 @@ type apcProvider struct {
 	activeSession net.Conn
 	events        []string
 	status        []string
-	rcvr          chan []string
+	tuple         entities.ChannelTuple
 	log           *log.Logger
 }
 
@@ -32,13 +39,13 @@ var (
 	_ interfaces.Provider    = (*apcProvider)(nil)
 )
 
-func NewAPCProvider(ctx context.Context, host entities.ApcHost, receiver chan []string, log *log.Logger) (interfaces.ApcProvider, error) {
+func NewAPCProvider(ctx context.Context, host entities.ApcHost, tuple entities.ChannelTuple, log *log.Logger) (interfaces.ApcProvider, error) {
 	provider := &apcProvider{
 		ctx:    ctx,
 		host:   host,
 		status: []string{},
 		events: []string{},
-		rcvr:   receiver,
+		tuple:  tuple,
 		log:    log,
 	}
 	err := provider.begin()
@@ -103,9 +110,9 @@ func (a *apcProvider) periodicUpdateStart() {
 				break back
 
 			case <-s.periodTicker.C:
-				_ = s.request(commandStatus, a.rcvr)
+				_ = s.request(commandStatus, a.tuple.Status)
 				time.Sleep(16 * time.Millisecond)
-				_ = s.request(commandEvents, a.rcvr)
+				_ = s.request(commandEvents, a.tuple.Events)
 			}
 		}
 		a.log.Println("periodicUpdateStart(", a.Name(), ") ended ")
@@ -118,7 +125,7 @@ func (a *apcProvider) periodicUpdateStop() {
 	a.periodTicker.Stop()
 }
 
-// End closes the apc connection and stops go routines
+// Shutdown closes the apc connection and stops go routines
 func (a *apcProvider) Shutdown() {
 	a.log.Println("ApcProvider::Shutdown(", a.Name(), ") called.")
 	if a.activeSession == nil {
@@ -234,14 +241,14 @@ transact:
 		}
 		if len(msg) > 12 {
 			if command == commandEvents {
-				msg = a.ChangeTimeFormat(msg[0:25]) + msg[26:]
-				a.addEvent(command + ": " + msg)
+				msg = commons.ChangeTimeFormat(msg[0:25], time.RFC1123) + msg[26:]
+				a.addEvent(msg)
 			} else {
 				trigger := strings.Count(msg, ":")
 				if trigger >= 3 {
-					msg = msg[0:11] + a.ChangeTimeFormat(msg[11:])
+					msg = msg[0:11] + commons.ChangeTimeFormat(msg[11:], time.RFC1123)
 				}
-				a.addStatus(command + ": " + msg)
+				a.addStatus(msg)
 			}
 		}
 		time.Sleep(64 * time.Millisecond) // let apcupsd breath a little
@@ -256,11 +263,4 @@ transact:
 	}
 
 	return err
-}
-func (a *apcProvider) ChangeTimeFormat(timeString string) string {
-	t, e := time.Parse("2006-01-02 15:04:05 -0700", strings.TrimSpace(timeString))
-	if e != nil {
-		a.log.Println("ApcService::ChangeTimeFormat() Time Parse Error, src: ", timeString, ", err: ", e.Error())
-	}
-	return t.Format(time.RFC1123)
 }

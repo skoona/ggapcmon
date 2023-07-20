@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -30,6 +29,7 @@ func main() {
 		log.Panic("main()::NewConfig() failed: ", err.Error())
 	}
 	//cfg.ResetConfig()
+	//logger.Println("HostKeys: ", cfg.HostKeys())
 
 	go func(stopFlag chan os.Signal) {
 		signal.Notify(stopFlag, syscall.SIGINT, syscall.SIGTERM)
@@ -39,7 +39,7 @@ func main() {
 		err = fmt.Errorf("Shutdown Signal Received: %v", sig.String())
 	}(shutdownSignals)
 
-	service, err := services.NewService(ctx, cfg.Hosts(), logger)
+	service, err := services.NewService(ctx, cfg, logger)
 	if err != nil {
 		log.Panic("main()::Service startup() failed: ", err.Error())
 	}
@@ -59,15 +59,21 @@ func main() {
 				gui.Quit()
 				break basic
 
-			case msg := <-service.HostMessageChannel(services.HostPveName):
+			case msg := <-service.HostMessageChannel(services.HostPveName).Status:
 				for idx, item := range msg {
-					parts := strings.SplitN(item, ": ", 2)
-					logger.Print("{", services.HostPveName, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
+					logger.Print("{", services.HostPveName, "}", "(", idx, ")[status] ==> ", item)
 				}
-			case msg := <-service.HostMessageChannel(services.HostVServName):
+			case msg := <-service.HostMessageChannel(services.HostPveName).Events:
 				for idx, item := range msg {
-					parts := strings.SplitN(item, ": ", 2)
-					logger.Print("{", services.HostVServName, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
+					logger.Print("{", services.HostPveName, "}", "(", idx, ")[events] ==> ", item)
+				}
+			case msg := <-service.HostMessageChannel(services.HostVServName).Status:
+				for idx, item := range msg {
+					logger.Print("{", services.HostVServName, "}", "(", idx, ")[status] ==> ", item)
+				}
+			case msg := <-service.HostMessageChannel(services.HostVServName).Events:
+				for idx, item := range msg {
+					logger.Print("{", services.HostVServName, "}", "(", idx, ")[events] ==> ", item)
 				}
 			}
 		}

@@ -11,23 +11,23 @@ import (
 
 type service struct {
 	ctx        context.Context
-	apchosts   []entities.ApcHost
+	cfg        interfaces.Configuration
 	providers  map[string]interfaces.Provider
-	publishers map[string]chan []string
+	publishers map[string]entities.ChannelTuple
 	log        *log.Logger
 }
 
 var _ interfaces.Service = (*service)(nil)
 
-func NewService(ctx context.Context, hosts []entities.ApcHost, log *log.Logger) (interfaces.Service, error) {
-	if len(hosts) == 0 {
+func NewService(ctx context.Context, cfg interfaces.Configuration, log *log.Logger) (interfaces.Service, error) {
+	if len(cfg.HostKeys()) == 0 {
 		return nil, errors.New("hosts param cannot be empty.")
 	}
 	s := &service{
 		ctx:        ctx,
 		providers:  map[string]interfaces.Provider{},
-		publishers: map[string]chan []string{},
-		apchosts:   hosts,
+		publishers: map[string]entities.ChannelTuple{},
+		cfg:        cfg,
 		log:        log,
 	}
 	err := s.begin()
@@ -38,15 +38,17 @@ func NewService(ctx context.Context, hosts []entities.ApcHost, log *log.Logger) 
 func (s *service) begin() error {
 	var err error
 failure:
-	for _, host := range s.apchosts {
-		c := make(chan []string, 16)
-		s.publishers[host.Name] = c
-		apc, err := providers.NewAPCProvider(s.ctx, host, c, s.log)
-		if err != nil {
-			s.log.Println("Service::begin(", host.Name, ") failed: ", err.Error())
-			break failure
+	for _, host := range s.cfg.Hosts() {
+		if host.Enabled {
+
+			s.publishers[host.Name] = *entities.NewChannelTuple(16)
+			apc, err := providers.NewAPCProvider(s.ctx, host, s.publishers[host.Name], s.log)
+			if err != nil {
+				s.log.Println("Service::begin(", host.Name, ") failed: ", err.Error())
+				break failure
+			}
+			s.providers[host.Name] = apc
 		}
-		s.providers[host.Name] = apc
 	}
 
 	return err
@@ -54,10 +56,10 @@ failure:
 func (s *service) Shutdown() {
 	s.log.Println("Service::Shutdown() called.")
 	for key, v := range s.publishers {
-		close(v)
+		v.Close()
 		s.providers[key].Shutdown()
 	}
 }
-func (s *service) HostMessageChannel(hostName string) chan []string {
+func (s *service) HostMessageChannel(hostName string) entities.ChannelTuple {
 	return s.publishers[hostName]
 }

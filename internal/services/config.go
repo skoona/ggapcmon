@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fyne.io/fyne/v2"
+	"github.com/skoona/ggapcmon/internal/commons"
 	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"log"
@@ -108,9 +109,5 @@ func (c *config) Update(name, ip string, netperiod, graphperiod time.Duration, t
 	return c.hosts[name]
 }
 func (c *config) HostKeys() []string {
-	var keys []string
-	for k, _ := range c.hosts {
-		keys = append(keys, k)
-	}
-	return keys
+	return commons.Keys(c.hosts)
 }
