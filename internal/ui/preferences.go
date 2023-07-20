@@ -32,13 +32,18 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 	tDesc := container.NewPadded(tdesc)
 
 	dHost := widget.NewEntry()
-	dHost.SetPlaceHolder("10.100.1.3:3551")
+	dHost.SetText(v.prfHost.IpAddress)
+
 	dName := widget.NewEntry()
-	dName.SetPlaceHolder("VServ")
+	dName.SetText(v.prfHost.Name)
+
+	z := strconv.Itoa(int(v.prfHost.NetworkSamplePeriod))
 	nPeriod := widget.NewEntry()
-	nPeriod.SetPlaceHolder("15")
+	nPeriod.SetText(z)
+
+	z = strconv.Itoa(int(v.prfHost.GraphingSamplePeriod))
 	gPeriod := widget.NewEntry()
-	gPeriod.SetPlaceHolder("30")
+	gPeriod.SetText(z)
 
 	enable := widget.NewCheck("", func(onOff bool) {
 		if onOff {
@@ -51,6 +56,7 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 			v.cfg.Apply(h)
 		}
 	})
+	enable.SetChecked(v.prfHost.Enabled)
 
 	trayIcon := widget.NewCheck("", func(onOff bool) {
 		if onOff {
@@ -63,6 +69,7 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 			v.cfg.Apply(h)
 		}
 	})
+	trayIcon.SetChecked(v.prfHost.TrayIcon)
 
 	form := &widget.Form{
 		Items: []*widget.FormItem{ // we can specify items in the constructor
@@ -100,9 +107,7 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 			i := widget.NewIcon(theme.StorageIcon())
 			i.Hide()
 
-			c := widget.NewCheck("0123456789", func(b bool) {
-				v.log.Println("Checkbox Default Func()")
-			})
+			c := widget.NewCheck("0123456789", nil)
 			c.Hide()
 
 			l := widget.NewLabel("0123456789")
@@ -124,9 +129,9 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 				object.(*fyne.Container).Objects[0].Hide()
 				object.(*fyne.Container).Objects[1].(*widget.Check).Text = "enabled"
 				object.(*fyne.Container).Objects[1].(*widget.Check).SetChecked(host.Enabled)
-				object.(*fyne.Container).Objects[1].(*widget.Check).OnChanged = func(b bool) {
-					v.log.Println("Enable: Row:Col", id.Row, ":", id.Col)
-				}
+				//object.(*fyne.Container).Objects[1].(*widget.Check).OnChanged = func(b bool) {
+				//	v.log.Println("Enable: Row:Col", id.Row, ":", id.Col)
+				//}
 				object.(*fyne.Container).Objects[2].Hide()
 				object.(*fyne.Container).Objects[1].Refresh()
 				object.(*fyne.Container).Objects[1].Show()
@@ -135,9 +140,9 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 				object.(*fyne.Container).Objects[0].Hide()
 				object.(*fyne.Container).Objects[1].(*widget.Check).Text = "use trayIcon"
 				object.(*fyne.Container).Objects[1].(*widget.Check).SetChecked(host.TrayIcon)
-				object.(*fyne.Container).Objects[1].(*widget.Check).OnChanged = func(b bool) {
-					v.log.Println("TryIcon: Row:Col", id.Row, ":", id.Col)
-				}
+				//object.(*fyne.Container).Objects[1].(*widget.Check).OnChanged = func(b bool) {
+				//	v.log.Println("TryIcon: Row:Col", id.Row, ":", id.Col)
+				//}
 				object.(*fyne.Container).Objects[2].Hide()
 				object.(*fyne.Container).Objects[1].Refresh()
 				object.(*fyne.Container).Objects[1].Show()
