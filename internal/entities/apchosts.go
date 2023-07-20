@@ -3,15 +3,21 @@ package entities
 import "time"
 
 type ApcHost struct {
-	IpAddress        string
-	Name             string
-	SecondsPerSample time.Duration
+	IpAddress            string
+	Name                 string
+	NetworkSamplePeriod  time.Duration
+	GraphingSamplePeriod time.Duration
+	Enabled              bool
+	TrayIcon             bool
 }
 
-func NewApcHost(name, ip string, secondsPerSample time.Duration) ApcHost {
-	return ApcHost{
-		IpAddress:        ip,
-		Name:             name,
-		SecondsPerSample: secondsPerSample,
+func NewApcHost(name, ip string, networkSamplePeriod, graphingSamplePeriod time.Duration, enable, trayIcon bool) *ApcHost {
+	return &ApcHost{
+		IpAddress:            ip,
+		Name:                 name,
+		NetworkSamplePeriod:  networkSamplePeriod,
+		GraphingSamplePeriod: graphingSamplePeriod,
+		Enabled:              enable,
+		TrayIcon:             trayIcon,
 	}
 }

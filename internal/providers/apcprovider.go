@@ -7,6 +7,7 @@ import (
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"log"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -88,10 +89,10 @@ func (a *apcProvider) begin() error {
 // which issues apc requests according to ticker's period
 func (a *apcProvider) periodicUpdateStart() {
 	if a.periodTicker != nil {
-		a.periodTicker.Reset(a.host.SecondsPerSample * time.Second)
+		a.periodTicker.Reset(a.host.NetworkSamplePeriod * time.Second)
 		return
 	}
-	a.periodTicker = time.NewTicker(a.host.SecondsPerSample * time.Second)
+	a.periodTicker = time.NewTicker(a.host.NetworkSamplePeriod * time.Second)
 
 	go func(s *apcProvider) {
 	back:
@@ -231,10 +232,17 @@ transact:
 		if len(msg) == 0 {
 			break transact
 		}
-		if command == commandEvents {
-			a.addEvent(command + ": " + msg)
-		} else {
-			a.addStatus(command + ": " + msg)
+		if len(msg) > 12 {
+			if command == commandEvents {
+				msg = a.ChangeTimeFormat(msg[0:25]) + msg[26:]
+				a.addEvent(command + ": " + msg)
+			} else {
+				trigger := strings.Count(msg, ":")
+				if trigger >= 3 {
+					msg = msg[0:11] + a.ChangeTimeFormat(msg[11:])
+				}
+				a.addStatus(command + ": " + msg)
+			}
 		}
 		time.Sleep(64 * time.Millisecond) // let apcupsd breath a little
 	}
@@ -248,4 +256,11 @@ transact:
 	}
 
 	return err
+}
+func (a *apcProvider) ChangeTimeFormat(timeString string) string {
+	t, e := time.Parse("2006-01-02 15:04:05 -0700", strings.TrimSpace(timeString))
+	if e != nil {
+		a.log.Println("ApcService::ChangeTimeFormat() Time Parse Error, src: ", timeString, ", err: ", e.Error())
+	}
+	return t.Format(time.RFC1123)
 }

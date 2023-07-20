@@ -2,10 +2,13 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"fyne.io/fyne/v2"
 	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"log"
+	"strings"
+	"time"
 )
 
 const (
@@ -19,6 +22,7 @@ const (
 type config struct {
 	hosts map[string]entities.ApcHost
 	log   *log.Logger
+	prefs fyne.Preferences
 }
 
 var _ interfaces.Configuration = (*config)(nil)
@@ -28,8 +32,9 @@ func NewConfig(prefs fyne.Preferences, log *log.Logger) (interfaces.Configuratio
 	var hosts map[string]entities.ApcHost
 
 	defaultHosts := map[string]entities.ApcHost{
-		HostVServName: entities.ApcHost{IpAddress: HostVServ, Name: HostVServName, SecondsPerSample: 33},
-		HostPveName:   entities.ApcHost{IpAddress: HostPve, Name: HostPveName, SecondsPerSample: 37},
+		// graph-30 = 15 hours @ 15 network-sec
+		HostVServName: entities.ApcHost{IpAddress: HostVServ, Name: HostVServName, NetworkSamplePeriod: 15, GraphingSamplePeriod: 5, Enabled: true, TrayIcon: true},
+		HostPveName:   entities.ApcHost{IpAddress: HostPve, Name: HostPveName, NetworkSamplePeriod: 15, GraphingSamplePeriod: 5, Enabled: true, TrayIcon: true},
 	}
 
 	hostString := prefs.String(HostsPrefs)
@@ -53,9 +58,13 @@ func NewConfig(prefs fyne.Preferences, log *log.Logger) (interfaces.Configuratio
 	cfg := &config{
 		hosts: hosts,
 		log:   log,
+		prefs: prefs,
 	}
 
 	return cfg, err
+}
+func (c *config) ResetConfig() {
+	c.prefs.SetString(HostsPrefs, "")
 }
 func (c *config) HostByName(hostName string) entities.ApcHost {
 	return c.hosts[hostName]
@@ -66,4 +75,42 @@ func (c *config) Hosts() []entities.ApcHost {
 		r = append(r, v)
 	}
 	return r
+}
+func (c *config) Apply(h entities.ApcHost) entities.ApcHost {
+	c.hosts[h.Name] = h
+	return c.hosts[h.Name]
+}
+func (c *config) Save(hosts []entities.ApcHost) error {
+	if hosts == nil {
+		return errors.New("Configuration::Save() host parameter cannot be nil")
+	}
+	for _, host := range hosts {
+		c.hosts[host.Name] = host
+	}
+	save, err := json.Marshal(c.hosts)
+	if err != nil {
+		log.Println("Configuration::Save() marshal failed: ", err.Error())
+	} else {
+		c.prefs.SetString(HostsPrefs, string(save))
+	}
+
+	return err
+}
+func (c *config) Update(name, ip string, netperiod, graphperiod time.Duration, tray, enable bool) entities.ApcHost {
+	host := c.hosts[name]
+	host.Name = strings.Clone(name)
+	host.IpAddress = strings.Clone(ip)
+	host.NetworkSamplePeriod = netperiod
+	host.GraphingSamplePeriod = graphperiod
+	host.TrayIcon = tray
+	host.Enabled = enable
+
+	return c.hosts[name]
+}
+func (c *config) HostKeys() []string {
+	var keys []string
+	for k, _ := range c.hosts {
+		keys = append(keys, k)
+	}
+	return keys
 }

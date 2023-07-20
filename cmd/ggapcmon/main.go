@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2/app"
 	"github.com/skoona/ggapcmon/internal/services"
+	"github.com/skoona/ggapcmon/internal/ui"
 	"log"
 	"os"
 	"os/signal"
@@ -28,6 +29,7 @@ func main() {
 	if err != nil {
 		log.Panic("main()::NewConfig() failed: ", err.Error())
 	}
+	//cfg.ResetConfig()
 
 	go func(stopFlag chan os.Signal) {
 		signal.Notify(stopFlag, syscall.SIGINT, syscall.SIGTERM)
@@ -43,26 +45,37 @@ func main() {
 	}
 	defer service.Shutdown()
 
-basic:
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Println("main::Done() fired:", ctx.Err().Error())
-			err = ctx.Err()
-			break basic
+	vp := ui.NewViewProvider(ctx, cfg, service, logger)
+	defer vp.Shutdown()
 
-		case msg := <-service.HostMessageChannel(services.HostPveName):
-			for idx, item := range msg {
-				parts := strings.SplitN(item, ": ", 2)
-				logger.Print("{", services.HostPveName, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
-			}
-		case msg := <-service.HostMessageChannel(services.HostVServName):
-			for idx, item := range msg {
-				parts := strings.SplitN(item, ": ", 2)
-				logger.Print("{", services.HostVServName, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
+	go func() {
+	basic:
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Println("main::Done() fired:", ctx.Err().Error())
+				err = ctx.Err()
+				time.Sleep(50 * time.Millisecond)
+				gui.Quit()
+				break basic
+
+			case msg := <-service.HostMessageChannel(services.HostPveName):
+				for idx, item := range msg {
+					parts := strings.SplitN(item, ": ", 2)
+					logger.Print("{", services.HostPveName, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
+				}
+			case msg := <-service.HostMessageChannel(services.HostVServName):
+				for idx, item := range msg {
+					parts := strings.SplitN(item, ": ", 2)
+					logger.Print("{", services.HostVServName, "}", "(", idx, ")[", parts[0], "] ==> ", parts[1])
+				}
 			}
 		}
-	}
 
-	logger.Println("main::Shutdown", err.Error())
+		logger.Println("main::Shutdown Listener Ended ", err.Error())
+	}()
+
+	vp.ShowMainPage()
+	gui.Run()
+	logger.Println("main::Shutdown Ended ")
 }
