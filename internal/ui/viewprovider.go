@@ -9,14 +9,16 @@ import (
 )
 
 type viewProvider struct {
-	ctx           context.Context
-	service       interfaces.Service
-	mainWindow    fyne.Window
-	prefsWindow   fyne.Window
-	log           *log.Logger
-	cfg           interfaces.Configuration
-	prefsHostKeys []string
-	prefsHost     entities.ApcHost
+	ctx          context.Context
+	service      interfaces.Service
+	mainWindow   fyne.Window
+	prefsWindow  fyne.Window
+	log          *log.Logger
+	cfg          interfaces.Configuration
+	prfHostKeys  []string
+	prfHost      entities.ApcHost
+	prfAddAction bool
+	prfDelAction bool
 }
 
 var (
@@ -37,7 +39,7 @@ func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service 
 	view.mainWindow.SetCloseIntercept(func() { view.mainWindow.Hide() })
 	view.mainWindow.SetMaster()
 
-	view.prefsWindow.Resize(fyne.NewSize(600, 800))
+	view.prefsWindow.Resize(fyne.NewSize(632, 512))
 	view.prefsWindow.SetCloseIntercept(func() { view.prefsWindow.Hide() })
 
 	view.SknTrayMenu()
@@ -58,4 +60,20 @@ func (v *viewProvider) ShowPrefsPage() {
 // Shutdown closes all go routine
 func (a *viewProvider) Shutdown() {
 	a.log.Println("ViewProvider::Shutdown() called.")
+}
+
+// prefsAddAction closes all go routine
+func (v *viewProvider) prefsAddAction() {
+	v.prfAddAction = true
+	v.cfg.AddHost(v.prfHost)
+	v.ShowPrefsPage()
+	v.log.Println("ViewProvider::prefsAddAction() called.")
+}
+
+// prefsDelAction closes all go routine
+func (v *viewProvider) prefsDelAction() {
+	v.prfDelAction = true
+	v.cfg.Remove(v.prfHost.Name)
+	v.ShowPrefsPage()
+	v.log.Println("ViewProvider::prefsDelAction() called.")
 }

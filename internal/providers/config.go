@@ -2,7 +2,6 @@ package providers
 
 import (
 	"encoding/json"
-	"errors"
 	"fyne.io/fyne/v2"
 	"github.com/skoona/ggapcmon/internal/commons"
 	"github.com/skoona/ggapcmon/internal/entities"
@@ -78,25 +77,21 @@ func (c *config) Hosts() []entities.ApcHost {
 	}
 	return r
 }
-func (c *config) Apply(h entities.ApcHost) entities.ApcHost {
+func (c *config) Apply(h entities.ApcHost) interfaces.Configuration {
 	c.hosts[h.Name] = h
-	return c.hosts[h.Name]
+	return c
 }
-func (c *config) Save(hosts []entities.ApcHost) error {
-	if hosts == nil {
-		return errors.New("Configuration::Save() host parameter cannot be nil")
-	}
-	for _, host := range hosts {
-		c.hosts[host.Name] = host
-	}
+func (c *config) AddHost(host entities.ApcHost) {
+	c.Apply(host).Save()
+	c.log.Println("Config::AddHost() saved: .", host)
+}
+func (c *config) Save() {
 	save, err := json.Marshal(c.hosts)
 	if err != nil {
 		log.Println("Configuration::Save() marshal failed: ", err.Error())
 	} else {
 		c.prefs.SetString(HostsPrefs, string(save))
 	}
-
-	return err
 }
 func (c *config) Update(name, ip string, netperiod, graphperiod time.Duration, tray, enable bool) entities.ApcHost {
 	host := c.hosts[name]
@@ -106,7 +101,7 @@ func (c *config) Update(name, ip string, netperiod, graphperiod time.Duration, t
 	host.GraphingSamplePeriod = graphperiod
 	host.TrayIcon = tray
 	host.Enabled = enable
-
+	c.Save()
 	return c.hosts[name]
 }
 func (c *config) Remove(hostName string) {
@@ -114,6 +109,7 @@ func (c *config) Remove(hostName string) {
 		return
 	}
 	delete(c.hosts, hostName)
+	c.Save()
 }
 func (c *config) HostKeys() []string {
 	return commons.Keys(c.hosts)
