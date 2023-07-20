@@ -11,6 +11,8 @@ type Configuration interface {
 	Apply(h entities.ApcHost) entities.ApcHost
 	Save(hosts []entities.ApcHost) error
 	Update(name, ip string, netperiod, graphperiod time.Duration, tray, enable bool) entities.ApcHost
+	Remove(hostName string)
 	HostKeys() []string
 	ResetConfig()
+	Shutdown()
 }

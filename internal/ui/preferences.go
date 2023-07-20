@@ -50,7 +50,6 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 			v.cfg.Apply(h)
 		}
 	})
-	//enable.SetChecked(commons.IsInfluxDBEnabled())
 
 	trayIcon := widget.NewCheck("", func(onOff bool) {
 		if onOff {
@@ -63,7 +62,6 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 			v.cfg.Apply(h)
 		}
 	})
-	//trayIcon.SetChecked(commons.IsDebugMode())
 
 	form := &widget.Form{
 		Items: []*widget.FormItem{ // we can specify items in the constructor
@@ -86,7 +84,9 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 			return len(v.prefsHostKeys), 7
 		},
 		func() fyne.CanvasObject { // created
-			return container.NewPadded()
+			o := container.NewCenter() // issue container minSize is 0
+			o.Resize(fyne.NewSize(192, 64))
+			return o
 		},
 		func(id widget.TableCellID, object fyne.CanvasObject) { // update
 			var elem fyne.CanvasObject
@@ -117,14 +117,15 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 				elem = widget.NewLabel("Default")
 				elem.(*widget.Label).TextStyle = fyne.TextStyle{Bold: true, Monospace: true}
 			}
+			elem.Resize(fyne.NewSize(192, 64))
 			object.(*fyne.Container).Add(elem)
 		},
 	)
 	table.OnSelected = func(id widget.TableCellID) {
 		v.log.Println("Selected: ", id.Row, ":", id.Col, ", Host: ", v.cfg.HostByName(v.prefsHostKeys[id.Row]))
 	}
-	//table.SetRowHeight(0, 24)
-	//table.SetRowHeight(1, 24)
+	//table.SetRowHeight(0, 48)
+	//table.SetRowHeight(1, 48)
 	//table.SetColumnWidth(0, 32)
 	//table.SetColumnWidth(1, 32)
 	//table.SetColumnWidth(2, 128)
@@ -158,7 +159,7 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 			),
 			nil,
 			nil,
-			container.NewMax(table),
+			table,
 		),
 	)
 	return page

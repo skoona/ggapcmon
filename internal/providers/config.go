@@ -1,4 +1,4 @@
-package services
+package providers
 
 import (
 	"encoding/json"
@@ -27,6 +27,7 @@ type config struct {
 }
 
 var _ interfaces.Configuration = (*config)(nil)
+var _ interfaces.Provider = (*config)(nil)
 
 func NewConfig(prefs fyne.Preferences, log *log.Logger) (interfaces.Configuration, error) {
 	var err error
@@ -108,6 +109,17 @@ func (c *config) Update(name, ip string, netperiod, graphperiod time.Duration, t
 
 	return c.hosts[name]
 }
+func (c *config) Remove(hostName string) {
+	if hostName == "" {
+		return
+	}
+	delete(c.hosts, hostName)
+}
 func (c *config) HostKeys() []string {
 	return commons.Keys(c.hosts)
+}
+
+// Shutdown closes all go routine
+func (c *config) Shutdown() {
+	c.log.Println("Config::Shutdown() called.")
 }

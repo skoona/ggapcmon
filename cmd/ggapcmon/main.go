@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"fyne.io/fyne/v2/app"
+	"github.com/skoona/ggapcmon/internal/providers"
 	"github.com/skoona/ggapcmon/internal/services"
 	"github.com/skoona/ggapcmon/internal/ui"
 	"log"
@@ -24,7 +25,7 @@ func main() {
 	gui := app.NewWithID("net.skoona.project.ggapcmon")
 	logger.Print("main()::RootURI: ", gui.Storage().RootURI().Path())
 
-	cfg, err := services.NewConfig(gui.Preferences(), logger)
+	cfg, err := providers.NewConfig(gui.Preferences(), logger)
 	if err != nil {
 		log.Panic("main()::NewConfig() failed: ", err.Error())
 	}
@@ -60,21 +61,21 @@ func main() {
 				gui.Quit()
 				break basic
 
-			case msg := <-service.HostMessageChannel(services.HostPveName).Status:
+			case msg := <-service.HostMessageChannel(providers.HostPveName).Status:
 				for idx, item := range msg {
-					logger.Print("{", services.HostPveName, "}", "(", idx, ")[status] ==> ", item)
+					logger.Print("{", providers.HostPveName, "}", "(", idx, ")[status] ==> ", item)
 				}
-			case msg := <-service.HostMessageChannel(services.HostPveName).Events:
+			case msg := <-service.HostMessageChannel(providers.HostPveName).Events:
 				for idx, item := range msg {
-					logger.Print("{", services.HostPveName, "}", "(", idx, ")[events] ==> ", item)
+					logger.Print("{", providers.HostPveName, "}", "(", idx, ")[events] ==> ", item)
 				}
-			case msg := <-service.HostMessageChannel(services.HostVServName).Status:
+			case msg := <-service.HostMessageChannel(providers.HostVServName).Status:
 				for idx, item := range msg {
-					logger.Print("{", services.HostVServName, "}", "(", idx, ")[status] ==> ", item)
+					logger.Print("{", providers.HostVServName, "}", "(", idx, ")[status] ==> ", item)
 				}
-			case msg := <-service.HostMessageChannel(services.HostVServName).Events:
+			case msg := <-service.HostMessageChannel(providers.HostVServName).Events:
 				for idx, item := range msg {
-					logger.Print("{", services.HostVServName, "}", "(", idx, ")[events] ==> ", item)
+					logger.Print("{", providers.HostVServName, "}", "(", idx, ")[events] ==> ", item)
 				}
 			}
 		}
