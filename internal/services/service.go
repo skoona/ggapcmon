@@ -7,6 +7,7 @@ import (
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"github.com/skoona/ggapcmon/internal/providers"
 	"log"
+	"strings"
 )
 
 type service struct {
@@ -59,6 +60,20 @@ func (s *service) Shutdown() {
 		s.providers[key].Shutdown()
 	}
 }
-func (s *service) HostMessageChannel(hostName string) entities.ChannelTuple {
+func (s *service) MessageChannelByName(hostName string) entities.ChannelTuple {
 	return s.publishers[hostName]
+}
+func (s *service) ParseStatus(status []string) map[string]string {
+	params := map[string]string{}
+	var key, value string
+
+	//DATE     : Fri, 21 Jul 2023 00:16:52 EDT
+	//0123456789012345678901234567890123456789
+	//         1         2         3         4
+	for _, line := range status {
+		key = strings.TrimSpace(line[0:9])
+		value = strings.TrimSpace(line[11:])
+		params[key] = value
+	}
+	return params
 }

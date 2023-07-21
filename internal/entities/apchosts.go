@@ -23,3 +23,9 @@ func NewApcHost(name, ip string, networkSamplePeriod, graphingSamplePeriod time.
 		State:                "unknown", // unknown, onbatt, charging, online, unplugged
 	}
 }
+func (a *ApcHost) IsEmpty() bool {
+	if a.Name != "" {
+		return true
+	}
+	return false
+}

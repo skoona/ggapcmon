@@ -242,12 +242,14 @@ transact:
 		if len(msg) > 12 {
 			if command == commandEvents {
 				msg = commons.ChangeTimeFormat(msg[0:25], time.RFC1123) + msg[26:]
+				msg = strings.TrimSpace(msg) + "\n"
 				a.addEvent(msg)
 			} else {
 				trigger := strings.Count(msg, ":")
 				if trigger >= 3 {
 					msg = msg[0:11] + commons.ChangeTimeFormat(msg[11:], time.RFC1123)
 				}
+				msg = strings.TrimSpace(msg) + "\n"
 				a.addStatus(msg)
 			}
 		}

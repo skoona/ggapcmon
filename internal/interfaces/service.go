@@ -3,6 +3,7 @@ package interfaces
 import "github.com/skoona/ggapcmon/internal/entities"
 
 type Service interface {
-	HostMessageChannel(hostName string) entities.ChannelTuple
+	MessageChannelByName(hostName string) entities.ChannelTuple
+	ParseStatus(status []string) map[string]string
 	Shutdown()
 }

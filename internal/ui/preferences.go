@@ -16,9 +16,6 @@ import (
 
 // settings page
 func (v *viewProvider) PrefsPage() *fyne.Container {
-	v.prfHostKeys = v.cfg.HostKeys()
-	v.prfHost = v.cfg.HostByName(v.prfHostKeys[0])
-
 	sDesc := canvas.NewText("Selected Host", color.White)
 	sDesc.Alignment = fyne.TextAlignLeading
 	sDesc.TextStyle = fyne.TextStyle{Italic: true}

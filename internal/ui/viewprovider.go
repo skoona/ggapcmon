@@ -27,6 +27,8 @@ var (
 )
 
 func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service interfaces.Service, log *log.Logger) interfaces.ViewProvider {
+	hk := cfg.HostKeys()
+	h := cfg.HostByName(hk[0])
 	view := &viewProvider{
 		ctx:         ctx,
 		log:         log,
@@ -34,6 +36,8 @@ func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service 
 		service:     service,
 		mainWindow:  fyne.CurrentApp().NewWindow("ggAPC Monitor"),
 		prefsWindow: fyne.CurrentApp().NewWindow("Preferences"),
+		prfHost:     h,
+		prfHostKeys: hk,
 	}
 	view.mainWindow.Resize(fyne.NewSize(1024, 756))
 	view.mainWindow.SetCloseIntercept(func() { view.mainWindow.Hide() })
@@ -48,11 +52,14 @@ func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service 
 	return view
 }
 func (v *viewProvider) ShowMainPage() {
+	v.prfHostKeys = v.cfg.HostKeys()
 	v.mainWindow.SetContent(v.MonitorPage())
 	v.mainWindow.Show()
 }
 
 func (v *viewProvider) ShowPrefsPage() {
+	v.prfHostKeys = v.cfg.HostKeys()
+	v.prfHost = v.cfg.HostByName(v.prfHostKeys[0])
 	v.prefsWindow.SetContent(v.PrefsPage())
 	v.prefsWindow.Show()
 }

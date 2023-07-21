@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"github.com/skoona/ggapcmon/internal/providers"
 	"github.com/skoona/ggapcmon/internal/services"
@@ -32,13 +33,14 @@ func main() {
 	//cfg.ResetConfig()
 	//logger.Println("HostKeys: ", cfg.HostKeys())
 
-	go func(stopFlag chan os.Signal) {
+	go func(stopFlag chan os.Signal, a fyne.App) {
 		signal.Notify(stopFlag, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-stopFlag // wait on ctrl-c
 		cancelApc()
 		time.Sleep(5 * time.Second)
 		err = fmt.Errorf("Shutdown Signal Received: %v", sig.String())
-	}(shutdownSignals)
+		a.Quit()
+	}(shutdownSignals, gui)
 
 	service, err := services.NewService(ctx, cfg, logger)
 	if err != nil {
@@ -48,40 +50,6 @@ func main() {
 
 	vp := ui.NewViewProvider(ctx, cfg, service, logger)
 	defer vp.Shutdown()
-
-	go func() {
-		logger.Println("main::Shutdown Listener BEGIN ")
-	basic:
-		for {
-			select {
-			case <-ctx.Done():
-				logger.Println("main::Done() fired:", ctx.Err().Error())
-				err = ctx.Err()
-				time.Sleep(50 * time.Millisecond)
-				gui.Quit()
-				break basic
-
-			case msg := <-service.HostMessageChannel(providers.HostPveName).Status:
-				for idx, item := range msg {
-					logger.Print("{", providers.HostPveName, "}", "(", idx, ")[status] ==> ", item)
-				}
-			case msg := <-service.HostMessageChannel(providers.HostPveName).Events:
-				for idx, item := range msg {
-					logger.Print("{", providers.HostPveName, "}", "(", idx, ")[events] ==> ", item)
-				}
-			case msg := <-service.HostMessageChannel(providers.HostVServName).Status:
-				for idx, item := range msg {
-					logger.Print("{", providers.HostVServName, "}", "(", idx, ")[status] ==> ", item)
-				}
-			case msg := <-service.HostMessageChannel(providers.HostVServName).Events:
-				for idx, item := range msg {
-					logger.Print("{", providers.HostVServName, "}", "(", idx, ")[events] ==> ", item)
-				}
-			}
-		}
-
-		logger.Println("main::Shutdown Listener END ", err.Error())
-	}()
 
 	vp.ShowMainPage()
 	gui.Run()
