@@ -36,8 +36,6 @@ func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 	defaultHosts := map[string]*entities.ApcHost{
 		// graph-30 = 15 hours @ 15 network-sec
 		HostLocalName: entities.NewApcHost(HostLocalName, HostLocal, 10, 5, true, true),
-		HostVServName: entities.NewApcHost(HostVServName, HostVServ, 10, 5, true, true),
-		HostPveName:   entities.NewApcHost(HostPveName, HostPve, 10, 5, true, true),
 	}
 
 	hostString := prefs.String(HostsPrefs)

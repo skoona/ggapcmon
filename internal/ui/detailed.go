@@ -81,16 +81,75 @@ func (v *viewProvider) Performance(status map[string]string) *fyne.Container {
 	return titleBorder
 }
 func (v *viewProvider) Metrics(status map[string]string) *fyne.Container {
-	desc := canvas.NewText("UP Metrics", theme.PrimaryColor())
-	desc.Alignment = fyne.TextAlignCenter
-	desc.TextStyle = fyne.TextStyle{Italic: true}
-	desc.TextSize = 18
-
+	var desc *canvas.Text
 	frame := canvas.NewRectangle(color.Transparent)
 	frame.StrokeWidth = 6
 	frame.StrokeColor = theme.PlaceHolderColor()
 
 	items := container.New(layout.NewFormLayout())
+
+	if len(status) < 24 { // network node
+
+		desc = canvas.NewText("Node Information", theme.PrimaryColor())
+		desc.Alignment = fyne.TextAlignCenter
+		desc.TextStyle = fyne.TextStyle{Italic: true}
+		desc.TextSize = 18
+
+		st := status["HOSTNAME"]
+		lbl := widget.NewLabel("This node")
+		lbl.Alignment = fyne.TextAlignTrailing
+		items.Add(lbl)
+		items.Add(widget.NewLabel(st))
+
+		st = status["UPSNAME"]
+		lbl = widget.NewLabel("Parent node")
+		lbl.Alignment = fyne.TextAlignTrailing
+		items.Add(lbl)
+		items.Add(widget.NewLabel(st))
+
+		st = status["MASTER"]
+		lbl = widget.NewLabel("Parent Node ip")
+		lbl.Alignment = fyne.TextAlignTrailing
+		items.Add(lbl)
+		items.Add(widget.NewLabel(st))
+
+	} else {
+		desc = canvas.NewText("UPS Metrics", theme.PrimaryColor())
+		desc.Alignment = fyne.TextAlignCenter
+		desc.TextStyle = fyne.TextStyle{Italic: true}
+		desc.TextSize = 18
+
+		st := status["LINEV"]
+		lbl := widget.NewLabel("Utility line")
+		lbl.Alignment = fyne.TextAlignTrailing
+		items.Add(lbl)
+		items.Add(widget.NewLabel(st))
+
+		st = status["BATTV"]
+		lbl = widget.NewLabel("Battery DC")
+		lbl.Alignment = fyne.TextAlignTrailing
+		items.Add(lbl)
+		items.Add(widget.NewLabel(st))
+
+		st = status["BCHARGE"]
+		lbl = widget.NewLabel("Percent battery charge")
+		lbl.Alignment = fyne.TextAlignTrailing
+		items.Add(lbl)
+		items.Add(widget.NewLabel(st))
+
+		st = status["LOADPCT"]
+		lbl = widget.NewLabel("Percent load capacity")
+		lbl.Alignment = fyne.TextAlignTrailing
+		items.Add(lbl)
+		items.Add(widget.NewLabel(st))
+
+		st = status["TIMELEFT"]
+		lbl = widget.NewLabel("Minutes remaining")
+		lbl.Alignment = fyne.TextAlignTrailing
+		items.Add(lbl)
+		items.Add(widget.NewLabel(st))
+
+	}
 
 	titleBorder := container.NewPadded(
 		frame,
@@ -105,37 +164,6 @@ func (v *viewProvider) Metrics(status map[string]string) *fyne.Container {
 			items,
 		),
 	)
-
-	st := status["LINEV"]
-	lbl := widget.NewLabel("Utility line")
-	lbl.Alignment = fyne.TextAlignTrailing
-	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
-
-	st = status["BATTV"]
-	lbl = widget.NewLabel("Battery DC")
-	lbl.Alignment = fyne.TextAlignTrailing
-	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
-
-	st = status["BCHARGE"]
-	lbl = widget.NewLabel("Percent battery charge")
-	lbl.Alignment = fyne.TextAlignTrailing
-	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
-
-	st = status["LOADPCT"]
-	lbl = widget.NewLabel("Percent load capacity")
-	lbl.Alignment = fyne.TextAlignTrailing
-	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
-
-	st = status["TIMELEFT"]
-	lbl = widget.NewLabel("Minutes remaining")
-	lbl.Alignment = fyne.TextAlignTrailing
-	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
-
 	return titleBorder
 }
 func (v *viewProvider) Software(status map[string]string) *fyne.Container {
@@ -170,11 +198,25 @@ func (v *viewProvider) Software(status map[string]string) *fyne.Container {
 	items.Add(lbl)
 	items.Add(widget.NewLabel(st))
 
+	st = status["HOSTNAME"]
+	lbl = widget.NewLabel("This node")
+	lbl.Alignment = fyne.TextAlignTrailing
+	items.Add(lbl)
+	items.Add(widget.NewLabel(st))
+
 	st = status["UPSNAME"]
 	lbl = widget.NewLabel("Monitored UPS name")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
 	items.Add(widget.NewLabel(st))
+
+	st = status["MASTER"]
+	if st != "" {
+		lbl = widget.NewLabel("Parent Node ip")
+		lbl.Alignment = fyne.TextAlignTrailing
+		items.Add(lbl)
+		items.Add(widget.NewLabel(st))
+	}
 
 	st = status["CABLE"]
 	lbl = widget.NewLabel("Cable driver type")
@@ -280,9 +322,13 @@ func (v *viewProvider) DetailPage(params chan map[string]string) *fyne.Container
 		for status := range params {
 			page.RemoveAll()
 			page.Add(v.Performance(status))
-			page.Add(v.Metrics(status))
+			if len(status) > 24 {
+				page.Add(v.Metrics(status))
+			}
 			page.Add(v.Software(status))
-			page.Add(v.Product(status))
+			if len(status) > 24 {
+				page.Add(v.Product(status))
+			}
 		}
 	}()
 
