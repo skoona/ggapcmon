@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"errors"
+	"github.com/skoona/ggapcmon/internal/commons"
 	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"github.com/skoona/ggapcmon/internal/providers"
-	"log"
 	"strings"
 )
 
@@ -15,12 +15,11 @@ type service struct {
 	cfg        interfaces.Configuration
 	providers  map[string]interfaces.Provider
 	publishers map[string]entities.ChannelTuple
-	log        *log.Logger
 }
 
 var _ interfaces.Service = (*service)(nil)
 
-func NewService(ctx context.Context, cfg interfaces.Configuration, log *log.Logger) (interfaces.Service, error) {
+func NewService(ctx context.Context, cfg interfaces.Configuration) (interfaces.Service, error) {
 	if len(cfg.HostKeys()) == 0 {
 		return nil, errors.New("hosts param cannot be empty.")
 	}
@@ -29,7 +28,6 @@ func NewService(ctx context.Context, cfg interfaces.Configuration, log *log.Logg
 		providers:  map[string]interfaces.Provider{},
 		publishers: map[string]entities.ChannelTuple{},
 		cfg:        cfg,
-		log:        log,
 	}
 	err := s.begin()
 
@@ -42,9 +40,9 @@ failure:
 	for _, host := range s.cfg.Hosts() {
 		if host.Enabled {
 			s.publishers[host.Name] = *entities.NewChannelTuple(16)
-			apc, err := providers.NewAPCProvider(s.ctx, host, s.publishers[host.Name], s.log)
+			apc, err := providers.NewAPCProvider(s.ctx, host, s.publishers[host.Name])
 			if err != nil {
-				s.log.Println("Service::begin(", host.Name, ") failed: ", err.Error())
+				commons.DebugLog("Service::begin(", host.Name, ") failed: ", err.Error())
 				break failure
 			}
 			s.providers[host.Name] = apc
@@ -54,7 +52,7 @@ failure:
 	return err
 }
 func (s *service) Shutdown() {
-	s.log.Println("Service::Shutdown() called.")
+	commons.DebugLog("Service::Shutdown() called.")
 	for key, v := range s.publishers {
 		v.Close()
 		if z, ok := s.providers[key]; ok {

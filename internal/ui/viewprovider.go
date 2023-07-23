@@ -10,7 +10,6 @@ import (
 	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
 	"github.com/skoona/sknlinechart"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -21,7 +20,6 @@ type viewProvider struct {
 	service       interfaces.Service
 	mainWindow    fyne.Window
 	prefsWindow   fyne.Window
-	log           *log.Logger
 	prfStatusLine *widget.Label
 	cfg           interfaces.Configuration
 	prfHostKeys   []string
@@ -33,12 +31,11 @@ var (
 	_ interfaces.Provider     = (*viewProvider)(nil)
 )
 
-func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service interfaces.Service, log *log.Logger) interfaces.ViewProvider {
+func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service interfaces.Service) interfaces.ViewProvider {
 	hk := cfg.HostKeys()
 	h := cfg.HostByName(hk[0])
 	view := &viewProvider{
 		ctx:           ctx,
-		log:           log,
 		cfg:           cfg,
 		service:       service,
 		mainWindow:    fyne.CurrentApp().NewWindow("ggAPC Monitor"),
@@ -75,7 +72,7 @@ func (v *viewProvider) ShowPrefsPage() {
 
 // Shutdown closes all go routine
 func (v *viewProvider) Shutdown() {
-	v.log.Println("ViewProvider::Shutdown() called.")
+	commons.DebugLog("ViewProvider::Shutdown() called.")
 }
 
 // verifyHostConnection attempts to connect to selected host
@@ -108,7 +105,7 @@ func (v *viewProvider) prefsDelAction() {
 // handleUpdatesForMonitorPage does exactly that
 func (v *viewProvider) handleUpdatesForMonitorPage(host *entities.ApcHost, service interfaces.Service, status *widget.Entry, events *widget.Entry, chart sknlinechart.LineChart, kChan chan map[string]string) {
 	go func(h *entities.ApcHost, svc interfaces.Service, st *widget.Entry, ev *widget.Entry, chart sknlinechart.LineChart, knowledge chan map[string]string) {
-		v.log.Println("ViewProvider::HandleUpdatesForMonitorPage[", h.Name, "] BEGIN")
+		commons.DebugLog("ViewProvider::HandleUpdatesForMonitorPage[", h.Name, "] BEGIN")
 		rcvTuple := svc.MessageChannelByName(h.Name)
 		var stBuild strings.Builder
 		var evBuild strings.Builder
@@ -118,7 +115,7 @@ func (v *viewProvider) handleUpdatesForMonitorPage(host *entities.ApcHost, servi
 		for {
 			select {
 			case <-v.ctx.Done():
-				v.log.Println("ViewProvider::HandleUpdatesForMonitorPage[", h.Name, "] fired:", v.ctx.Err().Error())
+				commons.DebugLog("ViewProvider::HandleUpdatesForMonitorPage[", h.Name, "] fired:", v.ctx.Err().Error())
 				break pageExit
 
 			case msg := <-rcvTuple.Status:
@@ -191,6 +188,6 @@ func (v *viewProvider) handleUpdatesForMonitorPage(host *entities.ApcHost, servi
 				}
 			}
 		}
-		v.log.Println("ViewProvider::HandleUpdatesForMonitorPage[", h.Name, "] ENDED")
+		commons.DebugLog("ViewProvider::HandleUpdatesForMonitorPage[", h.Name, "] ENDED")
 	}(host, service, status, events, chart, kChan)
 }

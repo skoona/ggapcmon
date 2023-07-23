@@ -3,7 +3,13 @@
 A go refactor of gapcmon from source forge, originally written in C/Gtk2.
 
 
+
+
 ### Project Layout
+
+Enable debug logging via environment var: `export GAPC_DEBUG="true"`
+
+
 ```text
 ├── LICENSE
 ├── README.md

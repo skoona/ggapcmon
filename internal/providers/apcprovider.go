@@ -12,7 +12,6 @@ import (
 	"github.com/skoona/ggapcmon/internal/commons"
 	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
-	"log"
 	"net"
 	"strings"
 	"time"
@@ -31,7 +30,6 @@ type apcProvider struct {
 	events        []string
 	status        []string
 	tuple         entities.ChannelTuple
-	log           *log.Logger
 }
 
 var (
@@ -39,14 +37,13 @@ var (
 	_ interfaces.Provider    = (*apcProvider)(nil)
 )
 
-func NewAPCProvider(ctx context.Context, host *entities.ApcHost, tuple entities.ChannelTuple, log *log.Logger) (interfaces.ApcProvider, error) {
+func NewAPCProvider(ctx context.Context, host *entities.ApcHost, tuple entities.ChannelTuple) (interfaces.ApcProvider, error) {
 	provider := &apcProvider{
 		ctx:    ctx,
 		host:   host,
 		status: []string{},
 		events: []string{},
 		tuple:  tuple,
-		log:    log,
 	}
 	err := provider.begin()
 	if err != nil {
@@ -73,7 +70,7 @@ func (a *apcProvider) connect() error {
 	conn, err := d.DialContext(ctx, "tcp", a.host.IpAddress)
 	if err != nil {
 		a.activeSession = nil
-		a.log.Println("connect() dial Error: ", err.Error(), ", host: ", a.host.Name, ", context: ", ctx.Err())
+		commons.DebugLog("connect() dial Error: ", err.Error(), ", host: ", a.host.Name, ", context: ", ctx.Err())
 	} else {
 		a.activeSession = conn
 		a.host.State = commons.HostStatusOnline
@@ -86,7 +83,7 @@ func (a *apcProvider) begin() error {
 
 	err := a.connect()
 	if err != nil {
-		a.log.Println("begin() connect Error: ", err.Error(), ", host: ", a.host.Name)
+		commons.DebugLog("begin() connect Error: ", err.Error(), ", host: ", a.host.Name)
 	} else {
 		a.periodicUpdateStart()
 	}
@@ -107,7 +104,7 @@ func (a *apcProvider) periodicUpdateStart() {
 		for {
 			select {
 			case <-s.ctx.Done():
-				a.log.Println("periodicUpdateStart(", s.host.Name, ") ending: ", s.ctx.Err().Error())
+				commons.DebugLog("periodicUpdateStart(", s.host.Name, ") ending: ", s.ctx.Err().Error())
 				break back
 
 			case <-s.periodTicker.C:
@@ -116,19 +113,19 @@ func (a *apcProvider) periodicUpdateStart() {
 				_ = s.request(commandEvents, a.tuple.Events)
 			}
 		}
-		a.log.Println("periodicUpdateStart(", a.host.Name, ") ended ")
+		commons.DebugLog("periodicUpdateStart(", a.host.Name, ") ended ")
 	}(a)
 }
 
 // periodicUpdateStop stops the ticker driving apc queries
 func (a *apcProvider) periodicUpdateStop() {
-	a.log.Println("periodicUpdateStop(", a.host.Name, ") called.")
+	commons.DebugLog("periodicUpdateStop(", a.host.Name, ") called.")
 	a.periodTicker.Stop()
 }
 
 // Shutdown closes the apc connection and stops go routines
 func (a *apcProvider) Shutdown() {
-	a.log.Println("ApcProvider::Shutdown(", a.host.Name, ") called.")
+	commons.DebugLog("ApcProvider::Shutdown(", a.host.Name, ") called.")
 	if a.activeSession == nil {
 		return
 	}
@@ -136,7 +133,7 @@ func (a *apcProvider) Shutdown() {
 	a.periodicUpdateStop()
 	err := a.activeSession.Close()
 	if err != nil {
-		a.log.Println("ApcProvider::Shutdown()::Close(", a.host.Name, ") Error: ", err.Error())
+		commons.DebugLog("ApcProvider::Shutdown()::Close(", a.host.Name, ") Error: ", err.Error())
 	}
 	a.activeSession = nil
 }
@@ -161,13 +158,13 @@ func (a *apcProvider) sendCommand(command string) error {
 	binary.BigEndian.PutUint16(b, msgLen)
 	_, err := a.activeSession.Write(b)
 	if err != nil {
-		a.log.Println("ApcProvider::sendCommand(", a.host.Name, ") write len error: ", err.Error())
+		commons.DebugLog("ApcProvider::sendCommand(", a.host.Name, ") write len error: ", err.Error())
 		return err
 	}
 
 	_, err = a.activeSession.Write([]byte(command))
 	if err != nil {
-		a.log.Println("ApcProvider::sendCommand(", a.host.Name, ") write command error: ", err.Error())
+		commons.DebugLog("ApcProvider::sendCommand(", a.host.Name, ") write command error: ", err.Error())
 		return err
 	}
 
@@ -180,7 +177,7 @@ func (a *apcProvider) receiveMessage() (string, error) {
 
 	read, err := a.activeSession.Read(b)
 	if err != nil {
-		a.log.Println("ApcProvider::receiveMessage(", a.host.Name, ") read len error: ", err.Error())
+		commons.DebugLog("ApcProvider::receiveMessage(", a.host.Name, ") read len error: ", err.Error())
 		return "", err
 	}
 
@@ -193,7 +190,7 @@ func (a *apcProvider) receiveMessage() (string, error) {
 
 	read, err = a.activeSession.Read(line)
 	if err != nil {
-		a.log.Println("ApcProvider::receiveMessage(", a.host.Name, ") read message error: ", err.Error())
+		commons.DebugLog("ApcProvider::receiveMessage(", a.host.Name, ") read message error: ", err.Error())
 		return string(message), err
 	}
 	if read > 2 {

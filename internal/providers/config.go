@@ -7,7 +7,6 @@ import (
 	"github.com/skoona/ggapcmon/internal/commons"
 	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
-	"log"
 	"net"
 	"time"
 )
@@ -24,14 +23,13 @@ const (
 
 type config struct {
 	hosts map[string]*entities.ApcHost
-	log   *log.Logger
 	prefs fyne.Preferences
 }
 
 var _ interfaces.Configuration = (*config)(nil)
 var _ interfaces.Provider = (*config)(nil)
 
-func NewConfig(prefs fyne.Preferences, log *log.Logger) (interfaces.Configuration, error) {
+func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 	var err error
 	var hosts map[string]*entities.ApcHost
 
@@ -44,17 +42,17 @@ func NewConfig(prefs fyne.Preferences, log *log.Logger) (interfaces.Configuratio
 
 	hostString := prefs.String(HostsPrefs)
 	if hostString != "" && len(hostString) > 16 {
-		log.Println("NewConfig() load preferences succeeded ")
+		commons.DebugLog("NewConfig() load preferences succeeded ")
 		err = json.Unmarshal([]byte(hostString), &hosts)
 		if err != nil {
-			log.Println("NewConfig() Unmarshal failed: ", err.Error())
+			commons.DebugLog("NewConfig() Unmarshal failed: ", err.Error())
 		}
 	}
 	if len(hosts) == 0 {
-		log.Println("NewConfig() load preferences failed using defaults ")
+		commons.DebugLog("NewConfig() load preferences failed using defaults ")
 		save, err := json.Marshal(defaultHosts)
 		if err != nil {
-			log.Println("NewConfig() Marshal saving prefs failed: ", err.Error())
+			commons.DebugLog("NewConfig() Marshal saving prefs failed: ", err.Error())
 		}
 		prefs.SetString(HostsPrefs, string(save))
 		hosts = defaultHosts
@@ -62,7 +60,6 @@ func NewConfig(prefs fyne.Preferences, log *log.Logger) (interfaces.Configuratio
 
 	cfg := &config{
 		hosts: hosts,
-		log:   log,
 		prefs: prefs,
 	}
 
@@ -92,12 +89,12 @@ func (c *config) Apply(h *entities.ApcHost) interfaces.Configuration {
 }
 func (c *config) AddHost(host *entities.ApcHost) {
 	c.Apply(host).Save()
-	c.log.Println("Config::AddHost() saved: .", host)
+	commons.DebugLog("Config::AddHost() saved: .", host)
 }
 func (c *config) Save() {
 	save, err := json.Marshal(c.hosts)
 	if err != nil {
-		log.Println("Configuration::Save() marshal failed: ", err.Error())
+		commons.DebugLog("Configuration::Save() marshal failed: ", err.Error())
 	} else {
 		c.prefs.SetString(HostsPrefs, string(save))
 	}
@@ -115,7 +112,7 @@ func (c *config) HostKeys() []string {
 
 // Shutdown compliance with Provider Interface
 func (c *config) Shutdown() {
-	c.log.Println("Config::Shutdown() called.")
+	commons.DebugLog("Config::Shutdown() called.")
 }
 
 // VerifyHostConnection compliance with Provider Interface
@@ -126,7 +123,7 @@ func (c *config) VerifyHostConnection(h *entities.ApcHost) error {
 	var d net.Dialer
 	conn, err := d.DialContext(ctx, "tcp", h.IpAddress)
 	if err != nil {
-		log.Println("connect() dial Error: ", err.Error(), ", Ip: ", h.IpAddress, ", context: ", ctx.Err())
+		commons.DebugLog("connect() dial Error: ", err.Error(), ", Ip: ", h.IpAddress, ", context: ", ctx.Err())
 		h.State = commons.HostStatusUnknown
 		if ctx.Err() != nil {
 			return ctx.Err()

@@ -6,6 +6,7 @@
 package commons
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -23,6 +24,14 @@ const (
 
 // ShutdownSignals alternate panic() implementation, causes an orderly shutdown
 var ShutdownSignals chan os.Signal
+var DebugLoggingEnabled = ("true" == os.Getenv("GAPC_DEBUG")) // "true" / "false"
+var logs = log.New(os.Stdout, "[DEBUG] ", log.Lmicroseconds|log.Lshortfile)
+
+func DebugLog(args ...any) {
+	if DebugLoggingEnabled {
+		_ = logs.Output(2, fmt.Sprint(args...))
+	}
+}
 
 // Keys returns the keys of the map m.
 // The keys will be an indeterminate order.
@@ -47,7 +56,7 @@ func ChangeTimeFormat(timeString string, format string) string {
 	}
 	t, err := time.Parse("2006-01-02 15:04:05 -0700", strings.TrimSpace(timeString))
 	if err != nil {
-		log.Println("ApcService::ChangeTimeFormat() Time Parse Error, src: ", timeString, ", err: ", err.Error())
+		DebugLog("ApcService::ChangeTimeFormat() Time Parse Error, src: ", timeString, ", err: ", err.Error())
 	}
 	return t.Format(format)
 }

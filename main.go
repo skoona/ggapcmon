@@ -19,14 +19,13 @@ import (
 
 func main() {
 	var err error
-	logger := log.New(os.Stdout, "[DEBUG] ", log.Lmicroseconds|log.Lshortfile)
 	commons.ShutdownSignals = make(chan os.Signal, 1)
 
 	ctx, cancelApc := context.WithCancel(context.Background())
 	defer cancelApc()
 
 	gui := app.NewWithID("net.skoona.project.ggapcmon")
-	logger.Print("main()::RootURI: ", gui.Storage().RootURI().Path())
+	commons.DebugLog("main()::RootURI: ", gui.Storage().RootURI().Path())
 	gui.SetIcon(commons.SknSelectThemedResource(commons.AppIcon))
 
 	go func(stopFlag chan os.Signal, a fyne.App) {
@@ -38,23 +37,23 @@ func main() {
 		a.Quit()
 	}(commons.ShutdownSignals, gui)
 
-	cfg, err := providers.NewConfig(gui.Preferences(), logger)
+	cfg, err := providers.NewConfig(gui.Preferences())
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("main()::NewConfig(): %v", err), gui.NewWindow("ggapcmon Configuration Failed"))
 		commons.ShutdownSignals <- syscall.SIGINT
 		cfg.ResetConfig()
 	}
 
-	service, err := services.NewService(ctx, cfg, logger)
+	service, err := services.NewService(ctx, cfg)
 	if err != nil {
 		log.Panic("main()::Service startup() failed: ", err.Error())
 	}
 	defer service.Shutdown()
 
-	vp := ui.NewViewProvider(ctx, cfg, service, logger)
+	vp := ui.NewViewProvider(ctx, cfg, service)
 	defer vp.Shutdown()
 
 	vp.ShowMainPage()
 	gui.Run()
-	logger.Println("main::Shutdown Ended ")
+	commons.DebugLog("main::Shutdown Ended ")
 }
