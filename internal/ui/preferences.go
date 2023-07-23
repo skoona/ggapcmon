@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-// settings page
-func (v *viewProvider) PrefsPage() *fyne.Container {
+// PreferencesPage manages application settings
+func (v *viewProvider) PreferencesPage() *fyne.Container {
 	sDesc := canvas.NewText("Selected Host", color.White)
 	sDesc.Alignment = fyne.TextAlignLeading
 	sDesc.TextStyle = fyne.TextStyle{Italic: true}
@@ -27,6 +27,79 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 	tdesc.TextStyle = fyne.TextStyle{Italic: true}
 	tdesc.TextSize = 24
 	tDesc := container.NewPadded(tdesc)
+
+	table := widget.NewTable(
+		func() (int, int) { // length
+			return len(v.prfHostKeys), 7
+		},
+		func() fyne.CanvasObject { // created
+			i := widget.NewIcon(theme.StorageIcon())
+			i.Hide()
+			l := widget.NewLabel("0123456789")
+			return container.NewHBox(i, l) // issue container minSize is 0
+		},
+		func(id widget.TableCellID, object fyne.CanvasObject) { // update
+			// Row, Col
+			host := v.cfg.HostByName(v.prfHostKeys[id.Row])
+			switch id.Col {
+			case 0: // State
+				object.(*fyne.Container).Objects[0].(*widget.Icon).SetResource(commons.SknSelectResource(host.State))
+				object.(*fyne.Container).Objects[1].Hide()
+				object.(*fyne.Container).Objects[0].Refresh()
+				object.(*fyne.Container).Objects[0].Show()
+
+			case 1: // Enabled
+				label := "disabled"
+				if host.Enabled {
+					label = "enabled"
+				}
+				object.(*fyne.Container).Objects[0].Hide()
+				object.(*fyne.Container).Objects[1].(*widget.Label).SetText(label)
+				object.(*fyne.Container).Objects[1].Refresh()
+				object.(*fyne.Container).Objects[1].Show()
+
+			case 2: // Tray
+				label := "no trayIcon"
+				if host.Enabled {
+					label = "use trayIcon"
+				}
+				object.(*fyne.Container).Objects[0].Hide()
+				object.(*fyne.Container).Objects[1].(*widget.Label).SetText(label)
+				object.(*fyne.Container).Objects[1].Refresh()
+				object.(*fyne.Container).Objects[1].Show()
+
+			case 3: // Name
+				object.(*fyne.Container).Objects[0].Hide()
+				object.(*fyne.Container).Objects[1].(*widget.Label).SetText(host.Name)
+				object.(*fyne.Container).Objects[1].Refresh()
+				object.(*fyne.Container).Objects[1].Show()
+
+			case 4: // IP
+				object.(*fyne.Container).Objects[0].Hide()
+				object.(*fyne.Container).Objects[1].(*widget.Label).SetText(host.IpAddress)
+				object.(*fyne.Container).Objects[1].Refresh()
+				object.(*fyne.Container).Objects[1].Show()
+
+			case 5: // Network
+				object.(*fyne.Container).Objects[0].Hide()
+				object.(*fyne.Container).Objects[1].(*widget.Label).SetText(strconv.Itoa(int(host.NetworkSamplePeriod)))
+				object.(*fyne.Container).Objects[1].Refresh()
+				object.(*fyne.Container).Objects[1].Show()
+
+			case 6: // Graph
+				object.(*fyne.Container).Objects[0].Hide()
+				object.(*fyne.Container).Objects[1].(*widget.Label).SetText(strconv.Itoa(int(host.GraphingSamplePeriod)))
+				object.(*fyne.Container).Objects[1].Refresh()
+				object.(*fyne.Container).Objects[1].Show()
+
+			default:
+				object.(*fyne.Container).Objects[0].Hide()
+				object.(*fyne.Container).Objects[1].(*widget.Label).SetText("Default")
+				object.(*fyne.Container).Objects[1].Refresh()
+				object.(*fyne.Container).Objects[1].Show()
+			}
+		},
+	)
 
 	dHost := widget.NewEntry()
 	dHost.SetText(v.prfHost.IpAddress)
@@ -42,30 +115,10 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 	gPeriod := widget.NewEntry()
 	gPeriod.SetText(z)
 
-	enable := widget.NewCheck("", func(onOff bool) {
-		if onOff {
-			h := v.cfg.HostByName(v.prfHost.Name)
-			h.Enabled = true
-			v.cfg.Apply(h)
-		} else {
-			h := v.cfg.HostByName(v.prfHost.Name)
-			h.Enabled = false
-			v.cfg.Apply(h)
-		}
-	})
+	enable := widget.NewCheck("", nil)
 	enable.SetChecked(v.prfHost.Enabled)
 
-	trayIcon := widget.NewCheck("", func(onOff bool) {
-		if onOff {
-			h := v.cfg.HostByName(v.prfHost.Name)
-			h.TrayIcon = true
-			v.cfg.Apply(h)
-		} else {
-			h := v.cfg.HostByName(v.prfHost.Name)
-			h.TrayIcon = false
-			v.cfg.Apply(h)
-		}
-	})
+	trayIcon := widget.NewCheck("", nil)
 	trayIcon.SetChecked(v.prfHost.TrayIcon)
 
 	form := &widget.Form{
@@ -80,7 +133,6 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 		SubmitText: "Apply",
 	}
 	form.OnSubmit = func() { // optional, handle form submission
-		//if reflect.TypeOf(v.prfHost).String() == "entities.ApcHost" {
 		v.prfHost.Name = dName.Text
 		v.prfHost.IpAddress = dHost.Text
 		x, _ := strconv.Atoi(nPeriod.Text)
@@ -91,98 +143,14 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 		v.prfHost.Enabled = enable.Checked
 
 		v.cfg.Apply(v.prfHost).Save()
-		v.ShowPrefsPage()
-		fmt.Println("Form submitted: restart for effect", v.prfHost)
-		//}
+		table.Refresh()
+		v.prfStatusLine.SetText(fmt.Sprintf("Form submitted for host:%s, restart for effect", v.prfHost.Name))
 	}
 
-	table := widget.NewTable(
-		func() (int, int) { // length
-			return len(v.prfHostKeys), 7
-		},
-		func() fyne.CanvasObject { // created
-			i := widget.NewIcon(theme.StorageIcon())
-			i.Hide()
-
-			c := widget.NewCheck("0123456789", nil)
-			c.Hide()
-
-			l := widget.NewLabel("0123456789")
-
-			return container.NewHBox(i, c, l) // issue container minSize is 0
-		},
-		func(id widget.TableCellID, object fyne.CanvasObject) { // update
-			// Row, Col
-			host := v.cfg.HostByName(v.prfHostKeys[id.Row])
-			switch id.Col {
-			case 0: // State
-				object.(*fyne.Container).Objects[0].(*widget.Icon).SetResource(commons.SknSelectResource("unplugged"))
-				object.(*fyne.Container).Objects[1].Hide()
-				object.(*fyne.Container).Objects[2].Hide()
-				object.(*fyne.Container).Objects[0].Refresh()
-				object.(*fyne.Container).Objects[0].Show()
-
-			case 1: // Enabled
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].(*widget.Check).Text = "enabled"
-				object.(*fyne.Container).Objects[1].(*widget.Check).SetChecked(host.Enabled)
-				//object.(*fyne.Container).Objects[1].(*widget.Check).OnChanged = func(b bool) {
-				//	v.log.Println("Enable: Row:Col", id.Row, ":", id.Col)
-				//}
-				object.(*fyne.Container).Objects[2].Hide()
-				object.(*fyne.Container).Objects[1].Refresh()
-				object.(*fyne.Container).Objects[1].Show()
-
-			case 2: // Tray
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].(*widget.Check).Text = "use trayIcon"
-				object.(*fyne.Container).Objects[1].(*widget.Check).SetChecked(host.TrayIcon)
-				//object.(*fyne.Container).Objects[1].(*widget.Check).OnChanged = func(b bool) {
-				//	v.log.Println("TryIcon: Row:Col", id.Row, ":", id.Col)
-				//}
-				object.(*fyne.Container).Objects[2].Hide()
-				object.(*fyne.Container).Objects[1].Refresh()
-				object.(*fyne.Container).Objects[1].Show()
-
-			case 3: // Name
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].Hide()
-				object.(*fyne.Container).Objects[2].(*widget.Label).SetText(host.Name)
-				object.(*fyne.Container).Objects[2].Refresh()
-				object.(*fyne.Container).Objects[2].Show()
-
-			case 4: // IP
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].Hide()
-				object.(*fyne.Container).Objects[2].(*widget.Label).SetText(host.IpAddress)
-				object.(*fyne.Container).Objects[2].Refresh()
-				object.(*fyne.Container).Objects[2].Show()
-
-			case 5: // Network
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].Hide()
-				object.(*fyne.Container).Objects[2].(*widget.Label).SetText(strconv.Itoa(int(host.NetworkSamplePeriod)))
-				object.(*fyne.Container).Objects[2].Refresh()
-				object.(*fyne.Container).Objects[2].Show()
-
-			case 6: // Graph
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].Hide()
-				object.(*fyne.Container).Objects[2].(*widget.Label).SetText(strconv.Itoa(int(host.GraphingSamplePeriod)))
-				object.(*fyne.Container).Objects[2].Refresh()
-				object.(*fyne.Container).Objects[2].Show()
-
-			default:
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].Hide()
-				object.(*fyne.Container).Objects[2].(*widget.Label).SetText("Default")
-				object.(*fyne.Container).Objects[2].Refresh()
-				object.(*fyne.Container).Objects[2].Show()
-			}
-			//object.Refresh()
-		},
-	)
 	table.OnSelected = func(id widget.TableCellID) {
+		if id.Row > len(v.prfHostKeys) {
+			v.prfHostKeys = v.cfg.HostKeys()
+		}
 		v.prfHost = v.cfg.HostByName(v.prfHostKeys[id.Row])
 
 		dName.Text = v.prfHost.Name
@@ -195,11 +163,11 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 		enable.Checked = v.prfHost.Enabled
 
 		form.Refresh()
-		v.log.Println("Selected: ", id.Row, ":", id.Col, ", Host: ", v.cfg.HostByName(v.prfHostKeys[id.Row]))
+		v.prfStatusLine.SetText(fmt.Sprintf("Selected row:%d, col:%d, for host:%s", id.Row, id.Col, v.cfg.HostByName(v.prfHostKeys[id.Row]).Name))
 	}
 	table.SetColumnWidth(0, 24)  // icon
-	table.SetColumnWidth(1, 96)  // enabled
-	table.SetColumnWidth(2, 128) // use tray
+	table.SetColumnWidth(1, 80)  // enabled
+	table.SetColumnWidth(2, 104) // use tray
 	table.SetColumnWidth(3, 132) // Name
 	table.SetColumnWidth(4, 132) // Ip
 	table.SetColumnWidth(5, 32)  // net period
@@ -218,20 +186,21 @@ func (v *viewProvider) PrefsPage() *fyne.Container {
 		container.NewBorder(
 			tDesc,
 			container.NewHBox(
-				widget.NewButtonWithIcon("", theme.ViewRefreshIcon(), func() {
-					v.ShowPrefsPage()
-					v.log.Println("Refresh clicked")
-				}),
-				widget.NewButtonWithIcon("add selected", theme.ContentAddIcon(), func() {
-					form.OnSubmit()
-					v.prefsAddAction()
-					v.log.Println("Add clicked")
-				}),
-				widget.NewButtonWithIcon("del selected", theme.ContentRemoveIcon(), func() {
-					// v.prfHost will be deleted
-					v.prefsDelAction()
-					v.log.Println("Remove clicked")
-				}),
+				container.NewHBox(
+					widget.NewButtonWithIcon("add selected", theme.ContentAddIcon(), func() {
+						form.OnSubmit()
+						v.prefsAddAction()
+					}),
+					widget.NewButtonWithIcon("del selected", theme.ContentRemoveIcon(), func() {
+						// v.prfHost will be deleted
+						v.prefsDelAction()
+					}),
+					widget.NewButtonWithIcon("test selected", theme.ContentRemoveIcon(), func() {
+						_ = v.verifyHostConnection()
+						table.Refresh()
+					}),
+				),
+				v.prfStatusLine,
 			),
 			nil,
 			nil,

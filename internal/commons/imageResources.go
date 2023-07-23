@@ -60,7 +60,7 @@ func sknImageByName(alias string, themed bool, inverted bool) *canvas.Image {
 		selected = resourceOnbattPng
 	case "online":
 		selected = resourceOnlinePng
-	case "unplugged":
+	case "unknown":
 		selected = resourceUnpluggedPng
 	default:
 		selected = resourceApcupsdPng

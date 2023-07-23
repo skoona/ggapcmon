@@ -18,10 +18,14 @@ func (v *viewProvider) SknTrayMenu() {
 	if desk, ok := fyne.CurrentApp().(desktop.App); ok {
 		m := fyne.NewMenu("gAPC Monitor",
 			fyne.NewMenuItem("Show monitor...", func() {
-				v.ShowMainPage()
+				v.mainWindow.Show()
 			}),
 			fyne.NewMenuItem("Show preferences...", func() {
-				v.ShowPrefsPage()
+				if v.prefsWindow.Content().Size().Width <= 10 {
+					v.ShowPrefsPage()
+				} else {
+					v.prefsWindow.Show()
+				}
 			}))
 		desk.SetSystemTrayMenu(m)
 		desk.SetSystemTrayIcon(commons.SknSelectResource("apcupsd"))
@@ -30,7 +34,11 @@ func (v *viewProvider) SknTrayMenu() {
 func (v *viewProvider) SknMenus() {
 
 	settingsItem := fyne.NewMenuItem("Preferences", func() {
-		v.ShowPrefsPage()
+		if v.prefsWindow.Content().Size().Width <= 10 {
+			v.ShowPrefsPage()
+		} else {
+			v.prefsWindow.Show()
+		}
 	})
 
 	cutItem := fyne.NewMenuItem("Cut", func() {

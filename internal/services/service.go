@@ -57,7 +57,9 @@ func (s *service) Shutdown() {
 	s.log.Println("Service::Shutdown() called.")
 	for key, v := range s.publishers {
 		v.Close()
-		s.providers[key].Shutdown()
+		if z, ok := s.providers[key]; ok {
+			z.Shutdown()
+		}
 	}
 }
 func (s *service) MessageChannelByName(hostName string) entities.ChannelTuple {

@@ -7,9 +7,22 @@ package commons
 
 import (
 	"log"
+	"os"
 	"strings"
 	"time"
 )
+
+const (
+	AppIcon             = "apcupsd"
+	PreferencesIcon     = "preferences"
+	HostStatusUnknown   = "unknown"
+	HostStatusOnBattery = "onbattery"
+	HostStatusCharging  = "charging"
+	HostStatusOnline    = "online"
+)
+
+// ShutdownSignals alternate panic() implementation, causes an orderly shutdown
+var ShutdownSignals chan os.Signal
 
 // Keys returns the keys of the map m.
 // The keys will be an indeterminate order.

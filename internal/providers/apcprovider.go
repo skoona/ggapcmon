@@ -25,7 +25,7 @@ const (
 
 type apcProvider struct {
 	ctx           context.Context
-	host          entities.ApcHost
+	host          *entities.ApcHost
 	periodTicker  *time.Ticker
 	activeSession net.Conn
 	events        []string
@@ -39,7 +39,7 @@ var (
 	_ interfaces.Provider    = (*apcProvider)(nil)
 )
 
-func NewAPCProvider(ctx context.Context, host entities.ApcHost, tuple entities.ChannelTuple, log *log.Logger) (interfaces.ApcProvider, error) {
+func NewAPCProvider(ctx context.Context, host *entities.ApcHost, tuple entities.ChannelTuple, log *log.Logger) (interfaces.ApcProvider, error) {
 	provider := &apcProvider{
 		ctx:    ctx,
 		host:   host,
@@ -56,7 +56,7 @@ func NewAPCProvider(ctx context.Context, host entities.ApcHost, tuple entities.C
 	}
 }
 
-// connect dials th apc server and establishes a connection
+// connect dials the apc server and establishes a connection
 func (a *apcProvider) connect() error {
 
 	if a.activeSession != nil {
@@ -76,6 +76,7 @@ func (a *apcProvider) connect() error {
 		a.log.Println("connect() dial Error: ", err.Error(), ", host: ", a.host.Name, ", context: ", ctx.Err())
 	} else {
 		a.activeSession = conn
+		a.host.State = commons.HostStatusOnline
 	}
 	return err
 }
@@ -106,7 +107,7 @@ func (a *apcProvider) periodicUpdateStart() {
 		for {
 			select {
 			case <-s.ctx.Done():
-				a.log.Println("periodicUpdateStart(", s.Name(), ") ending: ", s.ctx.Err().Error())
+				a.log.Println("periodicUpdateStart(", s.host.Name, ") ending: ", s.ctx.Err().Error())
 				break back
 
 			case <-s.periodTicker.C:
@@ -115,19 +116,19 @@ func (a *apcProvider) periodicUpdateStart() {
 				_ = s.request(commandEvents, a.tuple.Events)
 			}
 		}
-		a.log.Println("periodicUpdateStart(", a.Name(), ") ended ")
+		a.log.Println("periodicUpdateStart(", a.host.Name, ") ended ")
 	}(a)
 }
 
 // periodicUpdateStop stops the ticker driving apc queries
 func (a *apcProvider) periodicUpdateStop() {
-	a.log.Println("periodicUpdateStop(", a.Name(), ") called.")
+	a.log.Println("periodicUpdateStop(", a.host.Name, ") called.")
 	a.periodTicker.Stop()
 }
 
 // Shutdown closes the apc connection and stops go routines
 func (a *apcProvider) Shutdown() {
-	a.log.Println("ApcProvider::Shutdown(", a.Name(), ") called.")
+	a.log.Println("ApcProvider::Shutdown(", a.host.Name, ") called.")
 	if a.activeSession == nil {
 		return
 	}
@@ -135,16 +136,9 @@ func (a *apcProvider) Shutdown() {
 	a.periodicUpdateStop()
 	err := a.activeSession.Close()
 	if err != nil {
-		a.log.Println("ApcProvider::Shutdown()::Close(", a.Name(), ") Error: ", err.Error())
+		a.log.Println("ApcProvider::Shutdown()::Close(", a.host.Name, ") Error: ", err.Error())
 	}
 	a.activeSession = nil
-}
-
-func (a *apcProvider) Name() string {
-	return a.host.Name
-}
-func (a *apcProvider) IpAddress() string {
-	return a.host.IpAddress
 }
 
 func (a *apcProvider) addEvent(newValue string) {
@@ -167,13 +161,13 @@ func (a *apcProvider) sendCommand(command string) error {
 	binary.BigEndian.PutUint16(b, msgLen)
 	_, err := a.activeSession.Write(b)
 	if err != nil {
-		a.log.Println("ApcProvider::sendCommand(", a.Name(), ") write len error: ", err.Error())
+		a.log.Println("ApcProvider::sendCommand(", a.host.Name, ") write len error: ", err.Error())
 		return err
 	}
 
 	_, err = a.activeSession.Write([]byte(command))
 	if err != nil {
-		a.log.Println("ApcProvider::sendCommand(", a.Name(), ") write command error: ", err.Error())
+		a.log.Println("ApcProvider::sendCommand(", a.host.Name, ") write command error: ", err.Error())
 		return err
 	}
 
@@ -186,7 +180,7 @@ func (a *apcProvider) receiveMessage() (string, error) {
 
 	read, err := a.activeSession.Read(b)
 	if err != nil {
-		a.log.Println("ApcProvider::receiveMessage(", a.Name(), ") read len error: ", err.Error())
+		a.log.Println("ApcProvider::receiveMessage(", a.host.Name, ") read len error: ", err.Error())
 		return "", err
 	}
 
@@ -199,7 +193,7 @@ func (a *apcProvider) receiveMessage() (string, error) {
 
 	read, err = a.activeSession.Read(line)
 	if err != nil {
-		a.log.Println("ApcProvider::receiveMessage(", a.Name(), ") read message error: ", err.Error())
+		a.log.Println("ApcProvider::receiveMessage(", a.host.Name, ") read message error: ", err.Error())
 		return string(message), err
 	}
 	if read > 2 {

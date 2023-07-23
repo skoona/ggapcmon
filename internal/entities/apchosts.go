@@ -1,6 +1,9 @@
 package entities
 
-import "time"
+import (
+	"github.com/skoona/ggapcmon/internal/commons"
+	"time"
+)
 
 type ApcHost struct {
 	IpAddress            string
@@ -20,12 +23,9 @@ func NewApcHost(name, ip string, networkSamplePeriod, graphingSamplePeriod time.
 		GraphingSamplePeriod: graphingSamplePeriod,
 		Enabled:              enable,
 		TrayIcon:             trayIcon,
-		State:                "unknown", // unknown, onbatt, charging, online, unplugged
+		State:                commons.HostStatusUnknown,
 	}
 }
 func (a *ApcHost) IsEmpty() bool {
-	if a.Name != "" {
-		return true
-	}
-	return false
+	return a.Name != ""
 }
