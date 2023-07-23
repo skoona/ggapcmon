@@ -182,6 +182,12 @@ func (v *viewProvider) Software(status map[string]string) *fyne.Container {
 	items.Add(lbl)
 	items.Add(widget.NewLabel(st))
 
+	st = status["DRIVER"]
+	lbl = widget.NewLabel("Driver interface")
+	lbl.Alignment = fyne.TextAlignTrailing
+	items.Add(lbl)
+	items.Add(widget.NewLabel(st))
+
 	st = status["UPSMODE"]
 	lbl = widget.NewLabel("Configuration mode")
 	lbl.Alignment = fyne.TextAlignTrailing
