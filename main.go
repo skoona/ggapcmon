@@ -24,7 +24,7 @@ func main() {
 	ctx, cancelApc := context.WithCancel(context.Background())
 	defer cancelApc()
 
-	gui := app.NewWithID("net.skoonas.project.ggapcmon")
+	gui := app.NewWithID("net.skoona.projects.ggapcmon")
 	commons.DebugLog("main()::RootURI: ", gui.Storage().RootURI().Path())
 	gui.SetIcon(commons.SknSelectThemedResource(commons.AppIcon))
 
