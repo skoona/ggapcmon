@@ -60,3 +60,14 @@ func ChangeTimeFormat(timeString string, format string) string {
 	}
 	return t.Format(format)
 }
+
+// ShiftSlice drops index 0 and append newData to any type of slice
+func ShiftSlice[K comparable](newData K, slice []K) []K {
+	idx := 0
+	if len(slice) == 0 {
+		return append(slice, newData)
+	}
+	shorter := append(slice[:idx], slice[idx+1:]...)
+	shorter = append(shorter, newData)
+	return shorter
+}

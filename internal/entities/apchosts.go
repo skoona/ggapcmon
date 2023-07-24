@@ -26,6 +26,6 @@ func NewApcHost(name, ip string, networkSamplePeriod, graphingSamplePeriod time.
 		State:                commons.HostStatusUnknown,
 	}
 }
-func (a *ApcHost) IsEmpty() bool {
-	return a.Name != ""
+func (a *ApcHost) IsNil() bool {
+	return (a == nil)
 }

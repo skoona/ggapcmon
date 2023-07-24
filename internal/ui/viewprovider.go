@@ -22,6 +22,8 @@ type viewProvider struct {
 	prefsWindow   fyne.Window
 	prfStatusLine *widget.Label
 	cfg           interfaces.Configuration
+	chartPageData map[string]map[string]interfaces.GraphPointSmoothing
+	chartKeys     []string
 	prfHostKeys   []string
 	prfHost       *entities.ApcHost
 }
@@ -34,6 +36,8 @@ var (
 func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service interfaces.Service) interfaces.ViewProvider {
 	hk := cfg.HostKeys()
 	h := cfg.HostByName(hk[0])
+	stLine := widget.NewLabel("click entry in table to edit, or click add to add.")
+	//stLine.Wrapping = fyne.TextWrapWord -- causes pref page to break
 	view := &viewProvider{
 		ctx:           ctx,
 		cfg:           cfg,
@@ -42,7 +46,9 @@ func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service 
 		prefsWindow:   fyne.CurrentApp().NewWindow("Preferences"),
 		prfHost:       h,
 		prfHostKeys:   hk,
-		prfStatusLine: widget.NewLabel("click entry in table to edit, or click add to add."),
+		prfStatusLine: stLine,
+		chartPageData: map[string]map[string]interfaces.GraphPointSmoothing{}, // [host][chartkey]struct
+		chartKeys:     []string{"LINEV", "LOADPCT", "BCHARGE", "CUMONBATT", "TIMELEFT"},
 	}
 	view.mainWindow.Resize(fyne.NewSize(632, 432))
 	view.mainWindow.SetCloseIntercept(func() { view.mainWindow.Hide() })
@@ -88,16 +94,17 @@ func (v *viewProvider) verifyHostConnection() error {
 
 // prefsAddAction adds or replaces the host in the form
 func (v *viewProvider) prefsAddAction() {
-	n := v.prfHost.Name
-	v.cfg.AddHost(v.prfHost)
+	v.prfHostKeys = v.cfg.HostKeys()
 	v.ShowPrefsPage()
-	v.prfStatusLine.SetText("Host " + n + " was added")
+	v.prfStatusLine.SetText("Host " + v.prfHost.Name + " was added")
 }
 
 // prefsDelAction deletes the select host
 func (v *viewProvider) prefsDelAction() {
 	n := v.prfHost.Name
 	v.cfg.Remove(v.prfHost.Name)
+	v.prfHostKeys = v.cfg.HostKeys()
+	v.prfHost = v.cfg.HostByName(v.prfHostKeys[0])
 	v.ShowPrefsPage()
 	v.prfStatusLine.SetText("Host " + n + " was removed")
 }
@@ -115,6 +122,7 @@ func (v *viewProvider) handleUpdatesForMonitorPage(host *entities.ApcHost, servi
 		for {
 			select {
 			case <-v.ctx.Done():
+				close(knowledge) // detail pages
 				commons.DebugLog("ViewProvider::HandleUpdatesForMonitorPage[", h.Name, "] fired:", v.ctx.Err().Error())
 				break pageExit
 
@@ -142,45 +150,50 @@ func (v *viewProvider) handleUpdatesForMonitorPage(host *entities.ApcHost, servi
 				if len(currentSt) > 0 {
 					params = svc.ParseStatus(currentSt)
 
-					for k, v := range params {
-						floatStr := strings.Split(v, " ")
+					for k, vv := range params {
+						floatStr := strings.Split(vv, " ")
 						floatStr[0] = strings.TrimSpace(floatStr[0])
 						// gapcmon charted: LINEV, LOADPCT, BCHARGE, CUMONBATT, TIMELEFT
 						switch k {
 						case "LINEV":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
+							d64 = v.chartPageData[h.Name][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorYellow, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("LINEV", &point)
 						case "LOADPCT":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
+							d64 = v.chartPageData[h.Name][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorBlue, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("LOADPCT", &point)
 						case "BCHARGE":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
+							d64 = v.chartPageData[h.Name][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorGreen, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("BCHARGE", &point)
 						case "TIMELEFT":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
+							d64 = v.chartPageData[h.Name][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorPurple, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("TIMELEFT", &point)
 						case "CUMONBATT":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
+							d64 = v.chartPageData[h.Name][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorOrange, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("CUMONBATT", &point)
 						case "STATUS":
-							if strings.Contains(v, "ONLINE") {
+							if strings.Contains(vv, "ONLINE") {
 								h.State = commons.HostStatusOnline
-							} else if strings.Contains(v, "CHARG") {
+							} else if strings.Contains(vv, "CHARG") {
 								h.State = commons.HostStatusCharging
-							} else if strings.Contains(v, "TEST") {
+							} else if strings.Contains(vv, "TEST") {
 								h.State = commons.PreferencesIcon
-							} else if strings.Contains(v, "ONBATT") {
+							} else if strings.Contains(vv, "ONBATT") {
 								h.State = commons.HostStatusOnBattery
 							}
 						}
 
 					}
-					// keep performance
+					// details page updates
 					knowledge <- params
 
 					// ready next cycle

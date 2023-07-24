@@ -14,10 +14,6 @@ import (
 const (
 	HostLocal     = "127.0.0.1:3551"
 	HostLocalName = "Local"
-	HostVServ     = "10.100.1.3:3551"
-	HostVServName = "VServ"
-	HostPve       = "10.100.1.4:3551"
-	HostPveName   = "PVE"
 	HostsPrefs    = "ApcHost"
 )
 

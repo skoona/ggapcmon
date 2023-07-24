@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/skoona/ggapcmon/internal/commons"
+	"github.com/skoona/ggapcmon/internal/entities"
 	"image/color"
 	"strconv"
 	"time"
@@ -60,7 +61,7 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 
 			case 2: // Tray
 				label := "no trayIcon"
-				if host.Enabled {
+				if host.TrayIcon {
 					label = "use trayIcon"
 				}
 				object.(*fyne.Container).Objects[0].Hide()
@@ -132,16 +133,28 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 		},
 		SubmitText: "Apply",
 	}
-	form.OnSubmit = func() { // optional, handle form submission
-		v.prfHost.Name = dName.Text
-		v.prfHost.IpAddress = dHost.Text
-		x, _ := strconv.Atoi(nPeriod.Text)
-		v.prfHost.NetworkSamplePeriod = time.Duration(x)
-		x, _ = strconv.Atoi(gPeriod.Text)
-		v.prfHost.GraphingSamplePeriod = time.Duration(x)
-		v.prfHost.TrayIcon = trayIcon.Checked
-		v.prfHost.Enabled = enable.Checked
-
+	form.OnSubmit = func() { // Apply optional, handle form submission
+		if v.prfHost.Name != dName.Text {
+			nx, _ := strconv.Atoi(nPeriod.Text)
+			gx, _ := strconv.Atoi(gPeriod.Text)
+			v.prfHost = entities.NewApcHost(
+				dName.Text,
+				dHost.Text,
+				time.Duration(nx),
+				time.Duration(gx),
+				trayIcon.Checked,
+				enable.Checked,
+			)
+		} else {
+			v.prfHost.Name = dName.Text
+			v.prfHost.IpAddress = dHost.Text
+			x, _ := strconv.Atoi(nPeriod.Text)
+			v.prfHost.NetworkSamplePeriod = time.Duration(x)
+			x, _ = strconv.Atoi(gPeriod.Text)
+			v.prfHost.GraphingSamplePeriod = time.Duration(x)
+			v.prfHost.TrayIcon = trayIcon.Checked
+			v.prfHost.Enabled = enable.Checked
+		}
 		v.cfg.Apply(v.prfHost).Save()
 		table.Refresh()
 		v.prfStatusLine.SetText(fmt.Sprintf("Form submitted for host:%s, restart for effect", v.prfHost.Name))
@@ -192,7 +205,6 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 						v.prefsAddAction()
 					}),
 					widget.NewButtonWithIcon("del selected", theme.ContentRemoveIcon(), func() {
-						// v.prfHost will be deleted
 						v.prefsDelAction()
 					}),
 					widget.NewButtonWithIcon("test selected", theme.ContentRemoveIcon(), func() {

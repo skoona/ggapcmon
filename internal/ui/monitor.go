@@ -7,7 +7,8 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/skoona/ggapcmon/internal/commons"
-
+	"github.com/skoona/ggapcmon/internal/entities"
+	"github.com/skoona/ggapcmon/internal/interfaces"
 	"github.com/skoona/sknlinechart"
 	"syscall"
 )
@@ -30,6 +31,12 @@ func (v *viewProvider) MonitorPage() *fyne.Container {
 			events.SetPlaceHolder("Events Page")
 			events.TextStyle = fyne.TextStyle{Monospace: true}
 
+			// GraphSamplingPeriod for Charts
+			v.chartPageData[host.Name] = map[string]interfaces.GraphPointSmoothing{}
+			for _, key := range v.chartKeys {
+				intf := entities.NewGraphAverage(host.Name, key, host.GraphingSamplePeriod)
+				v.chartPageData[host.Name][key] = intf
+			}
 			// for chart page updates
 			data := map[string][]*sknlinechart.ChartDatapoint{}
 			chart, err := sknlinechart.NewLineChart(
