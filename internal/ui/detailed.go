@@ -7,10 +7,11 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/skoona/ggapcmon/internal/entities"
 	"image/color"
 )
 
-func (v *viewProvider) Performance(status map[string]string) *fyne.Container {
+func (v *viewProvider) Performance(bond *entities.UpsStatusValueBindings) *fyne.Container {
 	desc := canvas.NewText("Performance Summary", theme.PrimaryColor())
 	desc.Alignment = fyne.TextAlignCenter
 	desc.TextStyle = fyne.TextStyle{Italic: true}
@@ -36,51 +37,44 @@ func (v *viewProvider) Performance(status map[string]string) *fyne.Container {
 		),
 	)
 
-	st := status["SELFTEST"]
 	lbl := widget.NewLabel("Selftest running")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bselftest))
 
-	st = status["NUMXFERS"]
 	lbl = widget.NewLabel("Number of transfers")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bnumxfers))
 
-	st = status["LASTXFER"]
 	lbl = widget.NewLabel("Reason last transfer")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Blastxfer))
 
-	st = status["XONBATT"]
 	lbl = widget.NewLabel("Last transfer to battery")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bxonbatt))
 
-	st = status["XOFFBATT"]
 	lbl = widget.NewLabel("Last transfer off battery")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bxoffbatt))
 
-	st = status["TONBATT"]
 	lbl = widget.NewLabel("Time on battery")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Btonbatt))
 
-	st = status["CUMONBATT"]
 	lbl = widget.NewLabel("Cummulative on battery")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bcumonbatt))
 
 	return titleBorder
 }
-func (v *viewProvider) Metrics(status map[string]string) *fyne.Container {
+func (v *viewProvider) Metrics(bond *entities.UpsStatusValueBindings) *fyne.Container {
 	var desc *canvas.Text
 	frame := canvas.NewRectangle(color.Transparent)
 	frame.StrokeWidth = 6
@@ -88,30 +82,28 @@ func (v *viewProvider) Metrics(status map[string]string) *fyne.Container {
 
 	items := container.New(layout.NewFormLayout())
 
-	if len(status) < 24 { // network node
+	t, _ := bond.Bmaster.Get()
+	if t != "" { // network node
 
 		desc = canvas.NewText("Node Information", theme.PrimaryColor())
 		desc.Alignment = fyne.TextAlignCenter
 		desc.TextStyle = fyne.TextStyle{Italic: true}
 		desc.TextSize = 18
 
-		st := status["HOSTNAME"]
 		lbl := widget.NewLabel("This node")
 		lbl.Alignment = fyne.TextAlignTrailing
 		items.Add(lbl)
-		items.Add(widget.NewLabel(st))
+		items.Add(widget.NewLabelWithData(bond.Bhostname))
 
-		st = status["UPSNAME"]
 		lbl = widget.NewLabel("Parent node")
 		lbl.Alignment = fyne.TextAlignTrailing
 		items.Add(lbl)
-		items.Add(widget.NewLabel(st))
+		items.Add(widget.NewLabelWithData(bond.Bupsname))
 
-		st = status["MASTER"]
 		lbl = widget.NewLabel("Parent Node ip")
 		lbl.Alignment = fyne.TextAlignTrailing
 		items.Add(lbl)
-		items.Add(widget.NewLabel(st))
+		items.Add(widget.NewLabelWithData(bond.Bmaster))
 
 	} else {
 		desc = canvas.NewText("UPS Metrics", theme.PrimaryColor())
@@ -119,35 +111,30 @@ func (v *viewProvider) Metrics(status map[string]string) *fyne.Container {
 		desc.TextStyle = fyne.TextStyle{Italic: true}
 		desc.TextSize = 18
 
-		st := status["LINEV"]
 		lbl := widget.NewLabel("Utility line")
 		lbl.Alignment = fyne.TextAlignTrailing
 		items.Add(lbl)
-		items.Add(widget.NewLabel(st))
+		items.Add(widget.NewLabelWithData(bond.Blinev))
 
-		st = status["BATTV"]
 		lbl = widget.NewLabel("Battery DC")
 		lbl.Alignment = fyne.TextAlignTrailing
 		items.Add(lbl)
-		items.Add(widget.NewLabel(st))
+		items.Add(widget.NewLabelWithData(bond.Bbattv))
 
-		st = status["BCHARGE"]
 		lbl = widget.NewLabel("Percent battery charge")
 		lbl.Alignment = fyne.TextAlignTrailing
 		items.Add(lbl)
-		items.Add(widget.NewLabel(st))
+		items.Add(widget.NewLabelWithData(bond.Bbcharge))
 
-		st = status["LOADPCT"]
 		lbl = widget.NewLabel("Percent load capacity")
 		lbl.Alignment = fyne.TextAlignTrailing
 		items.Add(lbl)
-		items.Add(widget.NewLabel(st))
+		items.Add(widget.NewLabelWithData(bond.Bloadpct))
 
-		st = status["TIMELEFT"]
 		lbl = widget.NewLabel("Minutes remaining")
 		lbl.Alignment = fyne.TextAlignTrailing
 		items.Add(lbl)
-		items.Add(widget.NewLabel(st))
+		items.Add(widget.NewLabelWithData(bond.Btimeleft))
 
 	}
 
@@ -166,7 +153,7 @@ func (v *viewProvider) Metrics(status map[string]string) *fyne.Container {
 	)
 	return titleBorder
 }
-func (v *viewProvider) Software(status map[string]string) *fyne.Container {
+func (v *viewProvider) Software(bond *entities.UpsStatusValueBindings) *fyne.Container {
 	desc := canvas.NewText("Software Information ", theme.PrimaryColor())
 	desc.Alignment = fyne.TextAlignCenter
 	desc.TextStyle = fyne.TextStyle{Italic: true}
@@ -192,65 +179,57 @@ func (v *viewProvider) Software(status map[string]string) *fyne.Container {
 		),
 	)
 
-	st := status["VERSION"]
 	lbl := widget.NewLabel("APCUPSD version")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bversion))
 
-	st = status["HOSTNAME"]
 	lbl = widget.NewLabel("This node")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bhostname))
 
-	st = status["UPSNAME"]
 	lbl = widget.NewLabel("Monitored UPS name")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bupsname))
 
-	st = status["MASTER"]
-	if st != "" {
+	t, _ := bond.Bmaster.Get()
+	if t != "" {
 		lbl = widget.NewLabel("Parent Node ip")
 		lbl.Alignment = fyne.TextAlignTrailing
 		items.Add(lbl)
-		items.Add(widget.NewLabel(st))
+		items.Add(widget.NewLabelWithData(bond.Bmaster))
 	}
 
-	st = status["CABLE"]
 	lbl = widget.NewLabel("Cable driver type")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bcable))
 
-	st = status["DRIVER"]
 	lbl = widget.NewLabel("Driver interface")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bdriver))
 
-	st = status["UPSMODE"]
 	lbl = widget.NewLabel("Configuration mode")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bupsmode))
 
-	st = status["STARTTIME"]
 	lbl = widget.NewLabel("Last started")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bstarttime))
 
-	st = status["STATUS"]
 	lbl = widget.NewLabel("UPS state")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bstatus))
 
 	return titleBorder
 }
-func (v *viewProvider) Product(status map[string]string) *fyne.Container {
+func (v *viewProvider) Product(bond *entities.UpsStatusValueBindings) *fyne.Container {
 	desc := canvas.NewText("Product Information ", theme.PrimaryColor())
 	desc.Alignment = fyne.TextAlignCenter
 	desc.TextStyle = fyne.TextStyle{Italic: true}
@@ -276,61 +255,64 @@ func (v *viewProvider) Product(status map[string]string) *fyne.Container {
 		),
 	)
 
-	st := status["MODEL"]
 	lbl := widget.NewLabel("Device model")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bmodel))
 
-	st = status["SERIALNO"]
 	lbl = widget.NewLabel("Serial number")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bserialno))
 
-	st = status["MANDATE"]
 	lbl = widget.NewLabel("Manufacture date")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bmandate))
 
-	st = status["FIRMWARE"]
 	lbl = widget.NewLabel("Firmware")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bfirmware))
 
-	st = status["BATTDATE"]
 	lbl = widget.NewLabel("Battery date")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bbattdate))
 
-	st = status["ITEMP"]
 	lbl = widget.NewLabel("Internal temp")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
-	items.Add(widget.NewLabel(st))
+	items.Add(widget.NewLabelWithData(bond.Bitemp))
 
 	return titleBorder
 }
 
-func (v *viewProvider) DetailPage(params chan map[string]string) *fyne.Container {
+// DetailPage manages the different cards in the Details view based on type of ups node
+func (v *viewProvider) DetailPage(params chan map[string]string, bond *entities.UpsStatusValueBindings) *fyne.Container {
 	page := container.NewGridWithColumns(2)
 
-	go func() {
-		for status := range params {
-			page.RemoveAll()
-			page.Add(v.Performance(status))
-			if len(status) > 24 {
-				page.Add(v.Metrics(status))
-			}
-			page.Add(v.Software(status))
-			if len(status) > 24 {
-				page.Add(v.Product(status))
+	go func(bondData *entities.UpsStatusValueBindings, status chan map[string]string, content *fyne.Container) {
+		oneShot := true
+
+		// wait for a msg to determine what type of UPS,
+		// len < 24 (or status key of 'MASTER') is a networked node without a local UPS,
+		// while len > 24 assumes node with a local UPS and battery attached
+		for msg := range status {
+			bondData.Apply(msg)
+			if oneShot {
+				content.Add(v.Performance(bondData))
+				if len(msg) > 24 {
+					content.Add(v.Metrics(bondData))
+				}
+				content.Add(v.Software(bondData))
+				if len(msg) > 24 {
+					content.Add(v.Product(bondData))
+				}
+				oneShot = false
 			}
 		}
-	}()
+	}(bond, params, page)
 
 	return page
 }

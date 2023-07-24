@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/data/binding"
 	"github.com/skoona/ggapcmon/internal/commons"
 	"github.com/skoona/ggapcmon/internal/entities"
 	"github.com/skoona/ggapcmon/internal/interfaces"
@@ -50,6 +51,18 @@ func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 		}
 		prefs.SetString(HostsPrefs, string(save))
 		hosts = defaultHosts
+	}
+
+	// restore binding
+	for _, h := range hosts {
+		h.Bloadpct = binding.NewString()
+		h.Bbcharge = binding.NewString()
+		h.Blinev = binding.NewString()
+		h.Bcumonbatt = binding.NewString()
+		h.Bxoffbatt = binding.NewString()
+		h.Blastxfer = binding.NewString()
+		h.Bnumxfers = binding.NewString()
+		h.Bstatus = binding.NewString()
 	}
 
 	cfg := &config{

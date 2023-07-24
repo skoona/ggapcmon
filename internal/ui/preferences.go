@@ -142,8 +142,8 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 				dHost.Text,
 				time.Duration(nx),
 				time.Duration(gx),
-				trayIcon.Checked,
 				enable.Checked,
+				trayIcon.Checked,
 			)
 		} else {
 			v.prfHost.Name = dName.Text
