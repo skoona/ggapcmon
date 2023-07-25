@@ -60,9 +60,10 @@ func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 		h.Blinev = binding.NewString()
 		h.Bcumonbatt = binding.NewString()
 		h.Bxoffbatt = binding.NewString()
-		h.Blastxfer = binding.NewString()
+		h.Bxonbatt = binding.NewString()
 		h.Bnumxfers = binding.NewString()
-		h.Bstatus = binding.NewString()
+		h.Bmaster = binding.NewString()
+		h.Bcable = binding.NewString()
 	}
 
 	cfg := &config{

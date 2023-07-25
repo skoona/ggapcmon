@@ -18,8 +18,7 @@ Send comments to skoona at gmail dot com
 
 `
 
-	rtext := widget.NewRichTextFromMarkdown("")
-	rtext.ParseMarkdown(gtext)
+	rtext := widget.NewRichTextFromMarkdown(gtext)
 	rtext.Wrapping = fyne.TextWrapWord
 	return container.NewMax(
 		container.NewVScroll(

@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/skoona/ggapcmon/internal/commons"
 	"github.com/skoona/ggapcmon/internal/entities"
 	"image/color"
 )
@@ -82,61 +83,35 @@ func (v *viewProvider) Metrics(bond *entities.UpsStatusValueBindings) *fyne.Cont
 
 	items := container.New(layout.NewFormLayout())
 
-	t, _ := bond.Bmaster.Get()
-	if t != "" { // network node
+	desc = canvas.NewText("UPS Metrics", theme.PrimaryColor())
+	desc.Alignment = fyne.TextAlignCenter
+	desc.TextStyle = fyne.TextStyle{Italic: true}
+	desc.TextSize = 18
 
-		desc = canvas.NewText("Node Information", theme.PrimaryColor())
-		desc.Alignment = fyne.TextAlignCenter
-		desc.TextStyle = fyne.TextStyle{Italic: true}
-		desc.TextSize = 18
+	lbl := widget.NewLabel("Utility line")
+	lbl.Alignment = fyne.TextAlignTrailing
+	items.Add(lbl)
+	items.Add(widget.NewLabelWithData(bond.Blinev))
 
-		lbl := widget.NewLabel("This node")
-		lbl.Alignment = fyne.TextAlignTrailing
-		items.Add(lbl)
-		items.Add(widget.NewLabelWithData(bond.Bhostname))
+	lbl = widget.NewLabel("Battery DC")
+	lbl.Alignment = fyne.TextAlignTrailing
+	items.Add(lbl)
+	items.Add(widget.NewLabelWithData(bond.Bbattv))
 
-		lbl = widget.NewLabel("Parent node")
-		lbl.Alignment = fyne.TextAlignTrailing
-		items.Add(lbl)
-		items.Add(widget.NewLabelWithData(bond.Bupsname))
+	lbl = widget.NewLabel("Percent battery charge")
+	lbl.Alignment = fyne.TextAlignTrailing
+	items.Add(lbl)
+	items.Add(widget.NewLabelWithData(bond.Bbcharge))
 
-		lbl = widget.NewLabel("Parent Node ip")
-		lbl.Alignment = fyne.TextAlignTrailing
-		items.Add(lbl)
-		items.Add(widget.NewLabelWithData(bond.Bmaster))
+	lbl = widget.NewLabel("Percent load capacity")
+	lbl.Alignment = fyne.TextAlignTrailing
+	items.Add(lbl)
+	items.Add(widget.NewLabelWithData(bond.Bloadpct))
 
-	} else {
-		desc = canvas.NewText("UPS Metrics", theme.PrimaryColor())
-		desc.Alignment = fyne.TextAlignCenter
-		desc.TextStyle = fyne.TextStyle{Italic: true}
-		desc.TextSize = 18
-
-		lbl := widget.NewLabel("Utility line")
-		lbl.Alignment = fyne.TextAlignTrailing
-		items.Add(lbl)
-		items.Add(widget.NewLabelWithData(bond.Blinev))
-
-		lbl = widget.NewLabel("Battery DC")
-		lbl.Alignment = fyne.TextAlignTrailing
-		items.Add(lbl)
-		items.Add(widget.NewLabelWithData(bond.Bbattv))
-
-		lbl = widget.NewLabel("Percent battery charge")
-		lbl.Alignment = fyne.TextAlignTrailing
-		items.Add(lbl)
-		items.Add(widget.NewLabelWithData(bond.Bbcharge))
-
-		lbl = widget.NewLabel("Percent load capacity")
-		lbl.Alignment = fyne.TextAlignTrailing
-		items.Add(lbl)
-		items.Add(widget.NewLabelWithData(bond.Bloadpct))
-
-		lbl = widget.NewLabel("Minutes remaining")
-		lbl.Alignment = fyne.TextAlignTrailing
-		items.Add(lbl)
-		items.Add(widget.NewLabelWithData(bond.Btimeleft))
-
-	}
+	lbl = widget.NewLabel("Minutes remaining")
+	lbl.Alignment = fyne.TextAlignTrailing
+	items.Add(lbl)
+	items.Add(widget.NewLabelWithData(bond.Btimeleft))
 
 	titleBorder := container.NewPadded(
 		frame,
@@ -294,7 +269,7 @@ func (v *viewProvider) DetailPage(params chan map[string]string, bond *entities.
 
 	go func(bondData *entities.UpsStatusValueBindings, status chan map[string]string, content *fyne.Container) {
 		oneShot := true
-
+		commons.DebugLog("ViewProvider::UpsStatusValueBindings[", bondData.Host.Name, "] BEGIN")
 		// wait for a msg to determine what type of UPS,
 		// len < 24 (or status key of 'MASTER') is a networked node without a local UPS,
 		// while len > 24 assumes node with a local UPS and battery attached
@@ -309,9 +284,11 @@ func (v *viewProvider) DetailPage(params chan map[string]string, bond *entities.
 				if len(msg) > 24 {
 					content.Add(v.Product(bondData))
 				}
+				v.overviewTable.Refresh()
 				oneShot = false
 			}
 		}
+		commons.DebugLog("ViewProvider::UpsStatusValueBindings[", bondData.Host.Name, "] END")
 	}(bond, params, page)
 
 	return page

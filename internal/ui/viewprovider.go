@@ -16,6 +16,7 @@ type viewProvider struct {
 	service         interfaces.Service
 	mainWindow      fyne.Window
 	prefsWindow     fyne.Window
+	overviewTable   *widget.Table
 	prfStatusLine   *widget.Label
 	chartKeys       []string
 	chartPageData   map[string]map[string]interfaces.GraphPointSmoothing

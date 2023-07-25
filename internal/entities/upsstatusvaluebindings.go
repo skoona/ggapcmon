@@ -6,7 +6,7 @@ import (
 
 // UpsStatusValueBindings bond datapoints for UPS status display
 type UpsStatusValueBindings struct {
-	host       *ApcHost
+	Host       *ApcHost
 	Bselftest  binding.String
 	Bnumxfers  binding.String
 	Blastxfer  binding.String
@@ -40,7 +40,7 @@ type UpsStatusValueBindings struct {
 // to the view elements for UPS.
 func NewUpsStatusValueBindings(h *ApcHost) *UpsStatusValueBindings {
 	return &UpsStatusValueBindings{
-		host:       h,
+		Host:       h,
 		Bselftest:  binding.NewString(),
 		Bnumxfers:  binding.NewString(),
 		Blastxfer:  binding.NewString(),
@@ -73,7 +73,7 @@ func NewUpsStatusValueBindings(h *ApcHost) *UpsStatusValueBindings {
 
 // Apply reads slices from provided channel and assigns value to bond strings
 func (b *UpsStatusValueBindings) Apply(params map[string]string) {
-	h := b.host
+	h := b.Host
 	for k, v := range params {
 		switch k {
 		case "SELFTEST":
@@ -83,9 +83,9 @@ func (b *UpsStatusValueBindings) Apply(params map[string]string) {
 			_ = h.Bnumxfers.Set(v)
 		case "LASTXFER":
 			_ = b.Blastxfer.Set(v)
-			_ = h.Blastxfer.Set(v)
 		case "XONBATT":
 			_ = b.Bxonbatt.Set(v)
+			_ = h.Bxonbatt.Set(v)
 		case "XOFFBATT":
 			_ = b.Bxoffbatt.Set(v)
 			_ = h.Bxoffbatt.Set(v)
@@ -125,7 +125,6 @@ func (b *UpsStatusValueBindings) Apply(params map[string]string) {
 			_ = b.Bstarttime.Set(v)
 		case "STATUS":
 			_ = b.Bstatus.Set(v)
-			_ = h.Bstatus.Set(v)
 		case "MODEL":
 			_ = b.Bmodel.Set(v)
 		case "SERIALNO":

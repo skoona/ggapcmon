@@ -70,10 +70,11 @@ func (a *apcProvider) connect() error {
 	conn, err := d.DialContext(ctx, "tcp", a.host.IpAddress)
 	if err != nil {
 		a.activeSession = nil
+		a.host.State = commons.HostStatusUnknown
 		commons.DebugLog("connect() dial Error: ", err.Error(), ", host: ", a.host.Name, ", context: ", ctx.Err())
 	} else {
 		a.activeSession = conn
-		a.host.State = commons.HostStatusOnline
+		//a.host.State = commons.HostStatusOnline
 	}
 	return err
 }
