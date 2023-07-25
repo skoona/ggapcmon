@@ -12,9 +12,9 @@ func (v *viewProvider) GlossaryPage() *fyne.Container {
 
 A monitor for UPS's under the management of the APCUPSD applicaiton. 
 
-Application Under Construction
+* Application Under Construction
 
-Send comments to skoona at gmail dot com
+* Send comments to skoona at gmail dot com
 
 `
 
