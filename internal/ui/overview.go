@@ -15,7 +15,7 @@ import (
 func (v *viewProvider) OverviewPage() *fyne.Container {
 	table := widget.NewTable(
 		func() (int, int) { // length, columns
-			return len(v.prfHostKeys), 3
+			return len(v.prfHostKeys) + 1, 3
 		},
 		func() fyne.CanvasObject { // created
 			i := widget.NewIcon(theme.StorageIcon())
@@ -29,7 +29,22 @@ func (v *viewProvider) OverviewPage() *fyne.Container {
 			// ICON - STATUS, ddd Outages, Last on dateString,
 			//                LineV , DDD % percent Charge
 			// Row, Col
-			host := v.cfg.HostByName(v.prfHostKeys[id.Row])
+			if id.Row == 0 { // headers
+				object.(*fyne.Container).Objects[0].Hide()
+				switch id.Col {
+				case 0:
+					object.(*fyne.Container).Objects[1].(*widget.RichText).ParseMarkdown("## State")
+					object.(*fyne.Container).Objects[1].Show()
+				case 1:
+					object.(*fyne.Container).Objects[1].(*widget.RichText).ParseMarkdown("## Status")
+					object.(*fyne.Container).Objects[1].Show()
+				case 2:
+					object.(*fyne.Container).Objects[1].(*widget.RichText).ParseMarkdown("## Summary Information")
+					object.(*fyne.Container).Objects[1].Show()
+				}
+				return
+			}
+			host := v.cfg.HostByName(v.prfHostKeys[id.Row-1])
 			switch id.Col {
 			case 0: // State
 				object.(*fyne.Container).Objects[0].(*widget.Icon).SetResource(commons.SknSelectThemedResource(host.State))

@@ -11,6 +11,8 @@ type Configuration interface {
 	HostKeys() []string
 	HostByName(hostName string) *entities.ApcHost
 	AddHost(host *entities.ApcHost)
+	AddHubHost(host *entities.HubHost)
+	ApplyHub(h *entities.HubHost) Configuration
 	Apply(h *entities.ApcHost) Configuration
 	Save()
 	Remove(hostName string)
