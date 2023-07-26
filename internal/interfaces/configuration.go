@@ -15,6 +15,7 @@ type Configuration interface {
 	ApplyHub(h *entities.HubHost) Configuration
 	Apply(h *entities.ApcHost) Configuration
 	Save()
+	SaveHubs()
 	Remove(hostName string)
 	ResetConfig()
 	Shutdown()

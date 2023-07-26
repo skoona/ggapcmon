@@ -48,14 +48,14 @@ func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 		commons.DebugLog("NewConfig() load ApcHost preferences succeeded ")
 		err = json.Unmarshal([]byte(hostString), &hosts)
 		if err != nil {
-			commons.DebugLog("NewConfig() Unmarshal apcHhost failed: ", err.Error())
+			commons.DebugLog("NewConfig() Unmarshal ApcHhost failed: ", err.Error())
 		}
 	}
 	if len(hosts) == 0 {
-		commons.DebugLog("NewConfig() load preferences apcHosts failed using defaults ")
+		commons.DebugLog("NewConfig() load preferences ApcHost failed using defaults ")
 		save, err := json.Marshal(defaultHosts)
 		if err != nil {
-			commons.DebugLog("NewConfig() Marshal saving apcHosts prefs failed: ", err.Error())
+			commons.DebugLog("NewConfig() Marshal saving ApcHost prefs failed: ", err.Error())
 		}
 		prefs.SetString(HostsPrefs, string(save))
 		hosts = defaultHosts
@@ -76,17 +76,17 @@ func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 
 	hubHostString := prefs.String(HubHostsPrefs)
 	if hubHostString != "" {
-		commons.DebugLog("NewConfig() load hub preferences succeeded ")
+		commons.DebugLog("NewConfig() load HubHost preferences succeeded ")
 		err = json.Unmarshal([]byte(hubHostString), &hubHosts)
 		if err != nil {
 			commons.DebugLog("NewConfig() Unmarshal HubHosts failed: ", err.Error())
 		}
 	}
 	if len(hubHosts) == 0 {
-		commons.DebugLog("NewConfig() load hubHost preferences failed using defaults ")
+		commons.DebugLog("NewConfig() load HubHost preferences failed using defaults ")
 		save, err := json.Marshal(defaultHubHosts)
 		if err != nil {
-			commons.DebugLog("NewConfig() Marshal saving hubHosts prefs failed: ", err.Error())
+			commons.DebugLog("NewConfig() Marshal saving HubHost prefs failed: ", err.Error())
 		}
 		prefs.SetString(HubHostsPrefs, string(save))
 		hubHosts = defaultHubHosts
@@ -135,7 +135,7 @@ func (c *config) AddHost(host *entities.ApcHost) {
 	commons.DebugLog("Config::AddHost() saved: .", host)
 }
 func (c *config) AddHubHost(host *entities.HubHost) {
-	c.ApplyHub(host).Save()
+	c.ApplyHub(host).SaveHubs()
 	commons.DebugLog("Config::AddHubHost() saved: .", host)
 }
 func (c *config) Save() {
@@ -145,7 +145,9 @@ func (c *config) Save() {
 	} else {
 		c.prefs.SetString(HostsPrefs, string(save))
 	}
-	save, err = json.Marshal(c.hubs)
+}
+func (c *config) SaveHubs() {
+	save, err := json.Marshal(c.hubs)
 	if err != nil {
 		commons.DebugLog("Configuration::Save() marshal hubHosts failed: ", err.Error())
 	} else {
