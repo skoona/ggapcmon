@@ -20,6 +20,7 @@ const (
 
 type config struct {
 	hosts map[string]*entities.ApcHost
+	hubs  []*entities.HubHost
 	prefs fyne.Preferences
 }
 
@@ -34,6 +35,11 @@ func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 		// graph-30 = 15 hours @ 15 network-sec
 		HostLocalName: entities.NewApcHost(HostLocalName, HostLocal, 10, 5, true, true),
 	}
+	defaultHubHosts := []*entities.HubHost{
+		entities.NewHubHost("Scotts", "10.100.1.41", "a79c07db-9178-4976-bd10-428aa0d3d159", "10.100.1.183"),
+	}
+
+	commons.DebugLog("Default IP: ", commons.DefaultIp())
 
 	hostString := prefs.String(HostsPrefs)
 	if hostString != "" && len(hostString) > 16 {
@@ -68,6 +74,7 @@ func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 
 	cfg := &config{
 		hosts: hosts,
+		hubs:  defaultHubHosts,
 		prefs: prefs,
 	}
 
@@ -89,6 +96,9 @@ func (c *config) Hosts() []*entities.ApcHost {
 		r = append(r, v)
 	}
 	return r
+}
+func (c *config) HubHosts() []*entities.HubHost {
+	return c.hubs
 }
 func (c *config) Apply(h *entities.ApcHost) interfaces.Configuration {
 	c.hosts[h.Name] = h

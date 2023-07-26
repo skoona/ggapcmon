@@ -230,7 +230,7 @@ func (v *viewProvider) Product(bond *entities.UpsStatusValueBindings) *fyne.Cont
 		),
 	)
 
-	lbl := widget.NewLabel("Device model")
+	lbl := widget.NewLabel("DeviceList model")
 	lbl.Alignment = fyne.TextAlignTrailing
 	items.Add(lbl)
 	items.Add(widget.NewLabelWithData(bond.Bmodel))
