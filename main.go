@@ -44,38 +44,6 @@ func main() {
 		cfg.ResetConfig()
 	}
 
-	///*
-	//hubHost := entities.NewHubHost("Scotts", "10.100.1.41", "a79c07db-9178-4976-bd10-428aa0d3d159", "10.100.1.183")
-	//hubHost := cfg.HubHosts()[0]
-	//api := providers.NewHubitatProvider(ctx, hubHost)
-
-	//deviceList := api.DeviceList()
-	//commons.DebugLog("DeviceList ", deviceList)
-
-	//deviceInfo := api.DeviceDetailsList()
-	//commons.DebugLog("DeviceInfo ", deviceInfo)
-	//
-	//device := api.DeviceDetailById("3")
-	//commons.DebugLog("Device ", device)
-	//
-	//deviceCapabilities := api.DeviceCapabilitiesById("3")
-	//commons.DebugLog("DeviceCapabilities ", deviceCapabilities)
-	//
-	//deviceHistory := api.DeviceEventHistoryById("7")
-	//commons.DebugLog("DeviceHistory ", deviceHistory)
-
-	//ok := api.CreateDeviceEventListener()
-	//commons.DebugLog("CreateDeviceEventListener ", ok)
-	//if ok {
-	//	time.Sleep(1 * time.Minute)
-	//	cancelApc()
-	//	gui.Quit()
-	//	commons.DebugLog("HubHost DeviceDetails ==> ", hubHost.DeviceDetails)
-	//}
-	//time.Sleep(1 * time.Second)
-	//return
-	//*/
-
 	service, err := services.NewService(ctx, cfg)
 	if err != nil {
 		log.Panic("main()::Service startup() failed: ", err.Error())
