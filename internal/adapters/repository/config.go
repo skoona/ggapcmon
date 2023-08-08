@@ -26,13 +26,14 @@ type config struct {
 var _ ports.Configuration = (*config)(nil)
 var _ ports.Provider = (*config)(nil)
 
-func NewConfig(prefs fyne.Preferences) (ports.Configuration, error) {
+func NewConfig() (ports.Configuration, error) {
 	var err error
 	var hosts map[string]*domain.ApcHost
-
+	prefs := fyne.CurrentApp().Preferences()
+	defaultHost := domain.NewApcHost(HostLocalName, HostLocal, 10, 5, true, true)
 	defaultHosts := map[string]*domain.ApcHost{
 		// graph-30 = 15 hours @ 15 network-sec
-		HostLocalName: domain.NewApcHost(HostLocalName, HostLocal, 10, 5, true, true),
+		defaultHost.Id: defaultHost,
 	}
 
 	commons.DebugLog("Default IP: ", commons.DefaultIp())
@@ -47,10 +48,7 @@ func NewConfig(prefs fyne.Preferences) (ports.Configuration, error) {
 	}
 	if len(hosts) == 0 {
 		commons.DebugLog("NewConfig() load preferences ApcHost failed using defaults ")
-		save, err := json.Marshal(defaultHosts)
-		if err != nil {
-			commons.DebugLog("NewConfig() Marshal saving ApcHost prefs failed: ", err.Error())
-		}
+		save, _ := json.Marshal(defaultHosts)
 		prefs.SetString(HostsPrefs, string(save))
 		hosts = defaultHosts
 	}
@@ -82,8 +80,8 @@ func NewConfig(prefs fyne.Preferences) (ports.Configuration, error) {
 func (c *config) ResetConfig() {
 	c.prefs.SetString(HostsPrefs, "")
 }
-func (c *config) HostByName(hostName string) *domain.ApcHost {
-	return c.hosts[hostName]
+func (c *config) HostById(id string) *domain.ApcHost {
+	return c.hosts[id]
 }
 func (c *config) Hosts() []*domain.ApcHost {
 	var r []*domain.ApcHost
@@ -93,7 +91,7 @@ func (c *config) Hosts() []*domain.ApcHost {
 	return r
 }
 func (c *config) Apply(h *domain.ApcHost) ports.Configuration {
-	c.hosts[h.Name] = h
+	c.hosts[h.Id] = h
 	_ = c.VerifyHostConnection(h)
 	return c
 }
@@ -109,11 +107,11 @@ func (c *config) Save() {
 		c.prefs.SetString(HostsPrefs, string(save))
 	}
 }
-func (c *config) Remove(hostName string) {
-	if hostName == "" {
+func (c *config) Remove(id string) {
+	if id == "" {
 		return
 	}
-	delete(c.hosts, hostName)
+	delete(c.hosts, id)
 	c.Save()
 }
 func (c *config) HostKeys() []string {
@@ -141,7 +139,7 @@ func (c *config) VerifyHostConnection(h *domain.ApcHost) error {
 			return err
 		}
 	}
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	h.State = commons.HostStatusOnline
 	_ = conn.Close()
 	return nil

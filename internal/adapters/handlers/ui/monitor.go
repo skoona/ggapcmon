@@ -26,7 +26,7 @@ func (v *viewProvider) MonitorPage() *fyne.Container {
 
 	for _, host := range v.cfg.Hosts() {
 		if host.Enabled {
-			v.bondedUpsStatus[host.Name] = domain.NewUpsStatusValueBindings(host)
+			v.bondedUpsStatus[host.Id] = domain.NewUpsStatusValueBindings(host)
 			status := widget.NewMultiLineEntry()
 			status.SetPlaceHolder("StandBy: no status has been received.")
 			status.TextStyle = fyne.TextStyle{Monospace: true}
@@ -36,10 +36,10 @@ func (v *viewProvider) MonitorPage() *fyne.Container {
 			events.TextStyle = fyne.TextStyle{Monospace: true}
 
 			// GraphSamplingPeriod for Charts
-			v.chartPageData[host.Name] = map[string]ports.GraphPointSmoothing{}
+			v.chartPageData[host.Id] = map[string]ports.GraphPointSmoothing{}
 			for _, key := range v.chartKeys {
 				intf := domain.NewGraphAverage(host.Name, key, host.GraphingSamplePeriod)
-				v.chartPageData[host.Name][key] = intf
+				v.chartPageData[host.Id][key] = intf
 			}
 			// for chart page updates
 			data := map[string][]*sknlinechart.ChartDatapoint{}
@@ -56,7 +56,7 @@ func (v *viewProvider) MonitorPage() *fyne.Container {
 			tab := container.NewTabItemWithIcon(host.Name, theme.InfoIcon(),
 				container.NewAppTabs(
 					container.NewTabItemWithIcon("History", theme.HistoryIcon(), chart),
-					container.NewTabItemWithIcon("Detailed", theme.VisibilityIcon(), container.NewScroll(v.DetailPage(knowledge, v.bondedUpsStatus[host.Name]))),
+					container.NewTabItemWithIcon("Detailed", theme.VisibilityIcon(), container.NewScroll(v.DetailPage(knowledge, v.bondedUpsStatus[host.Id]))),
 					container.NewTabItemWithIcon("Status", theme.ListIcon(), status),
 					container.NewTabItemWithIcon("Events", theme.WarningIcon(), events),
 				),
@@ -74,7 +74,7 @@ func (v *viewProvider) MonitorPage() *fyne.Container {
 func (v *viewProvider) handleUpdatesForMonitorPage(host *domain.ApcHost, service ports.Service, status *widget.Entry, events *widget.Entry, chart sknlinechart.LineChart, kChan chan map[string]string) {
 	go func(h *domain.ApcHost, svc ports.Service, st *widget.Entry, ev *widget.Entry, chart sknlinechart.LineChart, knowledge chan map[string]string) {
 		commons.DebugLog("ViewProvider::HandleUpdatesForMonitorPage[", h.Name, "] BEGIN")
-		rcvTuple := svc.MessageChannelByName(h.Name)
+		rcvTuple := svc.MessageChannelById(h.Id)
 		var stBuild strings.Builder
 		var evBuild strings.Builder
 		var currentSt []string
@@ -119,27 +119,27 @@ func (v *viewProvider) handleUpdatesForMonitorPage(host *domain.ApcHost, service
 						switch k {
 						case "LINEV":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
-							d64 = v.chartPageData[h.Name][k].AddValue(d64)
+							d64 = v.chartPageData[h.Id][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorYellow, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("LINEV", &point)
 						case "LOADPCT":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
-							d64 = v.chartPageData[h.Name][k].AddValue(d64)
+							d64 = v.chartPageData[h.Id][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorBlue, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("LOADPCT", &point)
 						case "BCHARGE":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
-							d64 = v.chartPageData[h.Name][k].AddValue(d64)
+							d64 = v.chartPageData[h.Id][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorGreen, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("BCHARGE", &point)
 						case "TIMELEFT":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
-							d64 = v.chartPageData[h.Name][k].AddValue(d64)
+							d64 = v.chartPageData[h.Id][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorPurple, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("TIMELEFT", &point)
 						case "CUMONBATT":
 							d64, _ := strconv.ParseFloat(strings.TrimSpace(floatStr[0]), 32)
-							d64 = v.chartPageData[h.Name][k].AddValue(d64)
+							d64 = v.chartPageData[h.Id][k].AddValue(d64)
 							point := sknlinechart.NewChartDatapoint(float32(d64), theme.ColorOrange, time.Now().Format(time.RFC1123))
 							chart.ApplyDataPoint("CUMONBATT", &point)
 						case "STATUS":

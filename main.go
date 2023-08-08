@@ -37,7 +37,7 @@ func main() {
 		a.Quit()
 	}(commons.ShutdownSignals, gui)
 
-	cfg, err := repository.NewConfig(gui.Preferences())
+	cfg, err := repository.NewConfig()
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("main()::NewConfig(): %v", err), gui.NewWindow("ggapcmon Configuration Failed"))
 		commons.ShutdownSignals <- syscall.SIGINT

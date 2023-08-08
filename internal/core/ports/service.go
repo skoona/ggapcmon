@@ -5,7 +5,7 @@ import (
 )
 
 type Service interface {
-	MessageChannelByName(hostName string) domain.ChannelTuple
+	MessageChannelById(id string) domain.ChannelTuple
 	ParseStatus(status []string) map[string]string
 	Provider
 }

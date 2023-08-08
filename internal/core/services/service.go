@@ -35,20 +35,21 @@ func NewService(ctx context.Context, cfg ports.Configuration) (ports.Service, er
 failure:
 	for _, host := range s.cfg.Hosts() {
 		if host.Enabled {
-			s.publishers[host.Name] = *domain.NewChannelTuple(16)
-			apc, err := repository.NewAPCProvider(s.ctx, host, s.publishers[host.Name])
+			commons.DebugLog("Service::begin(", host.Name, "::", host.Id, ") Init ")
+			s.publishers[host.Id] = *domain.NewChannelTuple(16)
+			apc, err := repository.NewAPCProvider(s.ctx, host, s.publishers[host.Id])
 			if err != nil {
 				commons.DebugLog("Service::begin(", host.Name, ") failed: ", err.Error())
 				break failure
 			}
-			s.providers[host.Name] = apc
+			s.providers[host.Id] = apc
 		}
 	}
 
 	return s, err
 }
-func (s *service) MessageChannelByName(hostName string) domain.ChannelTuple {
-	return s.publishers[hostName]
+func (s *service) MessageChannelById(id string) domain.ChannelTuple {
+	return s.publishers[id]
 }
 func (s *service) ParseStatus(status []string) map[string]string {
 	params := map[string]string{}

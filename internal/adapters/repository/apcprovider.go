@@ -48,14 +48,12 @@ func NewAPCProvider(ctx context.Context, host *domain.ApcHost, tuple domain.Chan
 	err := provider.connect()
 	if err != nil {
 		commons.DebugLog("begin() connect Error: ", err.Error(), ", host: ", host.Name)
+		return nil, err
 	} else {
 		provider.periodicUpdateStart()
 	}
-	if err != nil {
-		return nil, err
-	} else {
-		return provider, nil
-	}
+
+	return provider, nil
 }
 
 // connect dials the apc server and establishes a connection
@@ -90,6 +88,7 @@ func (a *apcProvider) periodicUpdateStart() {
 		a.periodTicker.Reset(a.host.NetworkSamplePeriod * time.Second)
 		return
 	}
+	commons.DebugLog("periodicUpdateStart(", a.host.Name, ") begin ")
 	a.periodTicker = time.NewTicker(a.host.NetworkSamplePeriod * time.Second)
 
 	go func(s *apcProvider) {
@@ -101,6 +100,7 @@ func (a *apcProvider) periodicUpdateStart() {
 				break back
 
 			case <-s.periodTicker.C:
+				commons.DebugLog("periodicUpdateStart(", a.host.Name, ") ticked ")
 				_ = s.request(commandStatus, a.tuple.Status)
 				time.Sleep(50 * time.Millisecond)
 				_ = s.request(commandEvents, a.tuple.Events)

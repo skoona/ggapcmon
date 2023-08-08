@@ -6,7 +6,7 @@ type Configuration interface {
 	VerifyHostConnection(h *domain.ApcHost) error
 	Hosts() []*domain.ApcHost
 	HostKeys() []string
-	HostByName(hostName string) *domain.ApcHost
+	HostById(id string) *domain.ApcHost
 	AddHost(host *domain.ApcHost)
 	Apply(h *domain.ApcHost) Configuration
 	Save()

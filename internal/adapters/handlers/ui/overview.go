@@ -45,55 +45,50 @@ func (v *viewProvider) OverviewPage() *fyne.Container {
 				}
 				return
 			}
-			host := v.cfg.HostByName(v.prfHostKeys[id.Row-1])
-			switch id.Col {
-			case 0: // State
-				object.(*fyne.Container).Objects[0].(*canvas.Image).Resource = commons.SknSelectThemedResource(host.State)
-				object.(*fyne.Container).Objects[0].(*canvas.Image).Resize(fyne.NewSize(40, 40))
-				object.(*fyne.Container).Objects[0].Show()
-				object.(*fyne.Container).Objects[1].Hide()
+			if host := v.cfg.HostById(v.prfHostKeys[id.Row-1]); host != nil {
+				switch id.Col {
+				case 0: // State
+					object.(*fyne.Container).Objects[0].(*canvas.Image).Resource = commons.SknSelectThemedResource(host.State)
+					object.(*fyne.Container).Objects[0].(*canvas.Image).Resize(fyne.NewSize(40, 40))
+					object.(*fyne.Container).Objects[0].Show()
+					object.(*fyne.Container).Objects[1].Hide()
 
-			case 1: // Enabled
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].(*widget.RichText).ParseMarkdown("## " + strings.ToUpper(host.State))
-				object.(*fyne.Container).Objects[1].Show()
+				case 1: // Enabled
+					object.(*fyne.Container).Objects[0].Hide()
+					object.(*fyne.Container).Objects[1].(*widget.RichText).ParseMarkdown("## " + strings.ToUpper(host.State))
+					object.(*fyne.Container).Objects[1].Show()
 
-			case 2: // descriptions
-				z, _ := host.Bmaster.Get()
-				if !host.Enabled {
-					z = fmt.Sprintf("%s@%s\n\nno data available", host.Name, host.IpAddress)
-				} else if z != "" {
-					// network node
-					a := z
-					b, _ := host.Bcable.Get()
-					z = fmt.Sprintf("%s@%s UPS host: %s\n\n Driver interface: %s",
-						host.Name, host.IpAddress, a, b,
-					)
-				} else {
-					x := z
-					a, _ := host.Bloadpct.Get()
-					b, _ := host.Bnumxfers.Get() // FIX SOMETHING: why null error here
-					c, _ := host.Bxonbatt.Get()
-					d, _ := host.Blinev.Get()
-					e, _ := host.Bbcharge.Get()
-					z = fmt.Sprintf("## %s@%s Load %s\n\n%s Outages, Last on %s\n\n%s VAC, %s charge :%s",
-						host.Name,
-						host.IpAddress,
-						a, b, c, d, e, x,
-					)
+				case 2: // descriptions
+					z, _ := host.Bmaster.Get()
+					if !host.Enabled {
+						z = fmt.Sprintf("%s@%s\n\nno data available", host.Name, host.IpAddress)
+					} else if z != "" {
+						// network node
+						a := z
+						b, _ := host.Bcable.Get()
+						z = fmt.Sprintf("%s@%s UPS host: %s\n\n Driver interface: %s",
+							host.Name, host.IpAddress, a, b,
+						)
+					} else {
+						x := z
+						a, _ := host.Bloadpct.Get()
+						b, _ := host.Bnumxfers.Get() // FIX SOMETHING: why null error here
+						c, _ := host.Bxonbatt.Get()
+						d, _ := host.Blinev.Get()
+						e, _ := host.Bbcharge.Get()
+						z = fmt.Sprintf("## %s@%s Load %s\n\n%s Outages, Last on %s\n\n%s VAC, %s charge :%s",
+							host.Name,
+							host.IpAddress,
+							a, b, c, d, e, x,
+						)
+					}
+
+					object.(*fyne.Container).Objects[0].Hide()
+					object.(*fyne.Container).Objects[1].(*widget.RichText).ParseMarkdown(z)
+					object.(*fyne.Container).Objects[1].Refresh()
+					object.(*fyne.Container).Objects[1].Show()
+					object.(*fyne.Container).Refresh()
 				}
-
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].(*widget.RichText).ParseMarkdown(z)
-				object.(*fyne.Container).Objects[1].Refresh()
-				object.(*fyne.Container).Objects[1].Show()
-				object.(*fyne.Container).Refresh()
-
-			default:
-				object.(*fyne.Container).Objects[0].Hide()
-				object.(*fyne.Container).Objects[1].(*widget.Label).SetText("Default")
-				object.(*fyne.Container).Objects[1].Refresh()
-				object.(*fyne.Container).Objects[1].Show()
 			}
 		},
 	)

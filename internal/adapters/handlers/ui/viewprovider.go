@@ -40,7 +40,7 @@ var (
 // NewViewProvider manages all UI views and implements the ViewProvider Interface
 func NewViewProvider(ctx context.Context, cfg ports.Configuration, service ports.Service) ViewProvider {
 	hk := cfg.HostKeys()
-	h := cfg.HostByName(hk[0])
+	h := cfg.HostById(hk[0])
 	stLine := widget.NewLabel("click entry in table to edit, or click add to add.")
 	//stLine.Wrapping = fyne.TextWrapWord -- causes pref page to break
 	view := &viewProvider{
@@ -56,7 +56,7 @@ func NewViewProvider(ctx context.Context, cfg ports.Configuration, service ports
 		chartKeys:       []string{"LINEV", "LOADPCT", "BCHARGE", "CUMONBATT", "TIMELEFT"},
 		bondedUpsStatus: map[string]*domain.UpsStatusValueBindings{},
 	}
-	view.mainWindow.Resize(fyne.NewSize(960, 480))
+	view.mainWindow.Resize(fyne.NewSize(960, 496))
 	view.mainWindow.SetCloseIntercept(func() { view.mainWindow.Hide() })
 	view.mainWindow.SetMaster()
 	view.mainWindow.SetIcon(commons.SknSelectThemedResource(commons.AppIcon))
@@ -81,7 +81,7 @@ func (v *viewProvider) ShowMainPage() {
 // ShowPrefsPage displays teh settings por preferences page
 func (v *viewProvider) ShowPrefsPage() {
 	v.prfHostKeys = v.cfg.HostKeys()
-	v.prfHost = v.cfg.HostByName(v.prfHostKeys[0])
+	v.prfHost = v.cfg.HostById(v.prfHostKeys[0])
 	v.prefsWindow.SetContent(v.PreferencesPage())
 	v.prefsWindow.Show()
 }
@@ -100,19 +100,4 @@ func (v *viewProvider) verifyHostConnection() error {
 		v.prfStatusLine.SetText(v.prfHost.Name + " connect was not successful: " + err.Error())
 	}
 	return err
-}
-
-// prefsAddAction adds or replaces the host in the form
-func (v *viewProvider) prefsAddAction() {
-	v.prfHostKeys = v.cfg.HostKeys()
-	v.ShowPrefsPage()
-	v.prfStatusLine.SetText("Host " + v.prfHost.Name + " was added")
-}
-
-// prefsDelAction deletes the select host
-func (v *viewProvider) prefsDelAction() {
-	n := v.prfHost.Name
-	v.cfg.Remove(v.prfHost.Name)
-	v.ShowPrefsPage()
-	v.prfStatusLine.SetText("Host " + n + " was removed")
 }

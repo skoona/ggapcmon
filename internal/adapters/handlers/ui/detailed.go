@@ -274,6 +274,7 @@ func (v *viewProvider) DetailPage(params chan map[string]string, bond *domain.Up
 		// len < 24 (or status key of 'MASTER') is a networked node without a local UPS,
 		// while len > 24 assumes node with a local UPS and battery attached
 		for msg := range status {
+			commons.DebugLog("ViewProvider::UpsStatusValueBindings[", bondData.Host.Name, "] received msg: ", msg)
 			bondData.Apply(msg)
 			if oneShot {
 				content.Add(v.Performance(bondData))

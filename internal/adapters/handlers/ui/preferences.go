@@ -63,21 +63,20 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("IpAddress")
 					object.(*fyne.Container).Objects[1].Show()
 				case 5:
-					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("NetPrd")
+					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("NetPeriod")
 					object.(*fyne.Container).Objects[1].Show()
 				case 6:
-					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("GraphPrd")
+					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("GraphPeriod")
 					object.(*fyne.Container).Objects[1].Show()
 				}
 				return
 			}
 			// Row, Col
-			host := v.cfg.HostByName(v.prfHostKeys[id.Row-1])
+			host := v.cfg.HostById(v.prfHostKeys[id.Row-1])
 			switch id.Col {
 			case 0: // State
 				object.(*fyne.Container).Objects[0].(*canvas.Image).Resource = commons.SknSelectThemedResource(host.State)
 				object.(*fyne.Container).Objects[0].(*canvas.Image).Resize(fyne.NewSize(40, 40))
-				//object.(*fyne.Container).Objects[0].(*widget.Icon).SetResource(commons.SknSelectResource(host.State))
 				object.(*fyne.Container).Objects[1].Hide()
 				object.(*fyne.Container).Objects[0].Refresh()
 				object.(*fyne.Container).Objects[0].Show()
@@ -207,7 +206,7 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 		if id.Row-1 > len(v.prfHostKeys) {
 			v.prfHostKeys = v.cfg.HostKeys()
 		}
-		v.prfHost = v.cfg.HostByName(v.prfHostKeys[id.Row-1])
+		v.prfHost = v.cfg.HostById(v.prfHostKeys[id.Row-1])
 
 		dId.SetText(v.prfHost.Id)
 		dName.Text = v.prfHost.Name
@@ -220,7 +219,7 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 		enable.Checked = v.prfHost.Enabled
 
 		form.Refresh()
-		v.prfStatusLine.SetText(fmt.Sprintf("Selected row:%d, col:%d, for host:%s", id.Row-1, id.Col, v.cfg.HostByName(v.prfHostKeys[id.Row-1]).Name))
+		v.prfStatusLine.SetText(fmt.Sprintf("Selected row:%d, col:%d, for host:%s", id.Row-1, id.Col, v.cfg.HostById(v.prfHostKeys[id.Row-1]).Name))
 	}
 	table.SetColumnWidth(0, 40)  // icon
 	table.SetColumnWidth(1, 80)  // enabled
@@ -247,13 +246,23 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 					widget.NewButtonWithIcon("add", theme.ContentAddIcon(), func() {
 						dId.SetText("")
 						form.OnSubmit()
-						v.prefsAddAction()
+						v.prfHostKeys = v.cfg.HostKeys()
+						v.prfHost = v.cfg.HostById(v.prfHost.Id)
+						table.Refresh()
+						v.prfStatusLine.SetText("Host " + v.prfHost.Name + " was added")
 					}),
 					widget.NewButtonWithIcon("del", theme.ContentRemoveIcon(), func() {
-						v.prefsDelAction()
+						h := v.prfHost
+						v.cfg.Remove(h.Id)
+						v.prfHostKeys = v.cfg.HostKeys()
+						v.prfHost = v.cfg.HostById(v.prfHostKeys[0])
+						table.Refresh()
+						v.prfStatusLine.SetText("Host " + h.Name + " was removed")
 					}),
 					widget.NewButtonWithIcon("test", theme.QuestionIcon(), func() {
 						_ = v.verifyHostConnection()
+						v.prfHostKeys = v.cfg.HostKeys()
+						v.prfHost = v.cfg.HostById(v.prfHost.Id)
 						table.Refresh()
 					}),
 				),
