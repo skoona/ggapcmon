@@ -1,4 +1,4 @@
-package entities
+package domain
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ type GraphAverage struct {
 	dataPoints  []float64
 }
 
-//var _ (interfaces.GraphPointSmoothing) = (*GraphAverage)(nil)
+//var _ (ports.GraphPointSmoothing) = (*GraphAverage)(nil)
 
 // NewGraphAverage create a data queue of graphPeriod depth
 // returns the straight average of the queue,

@@ -4,14 +4,14 @@ Connects to an APC Host and provides slices of the Events and Status topics
 on a period cycle declared in the host mopdel as network sampling period.
 Slices are returned over a seperate channels to whoever is listening.
 */
-package providers
+package repository
 
 import (
 	"context"
 	"encoding/binary"
 	"github.com/skoona/ggapcmon/internal/commons"
-	"github.com/skoona/ggapcmon/internal/entities"
-	"github.com/skoona/ggapcmon/internal/interfaces"
+	"github.com/skoona/ggapcmon/internal/core/domain"
+	"github.com/skoona/ggapcmon/internal/core/ports"
 	"net"
 	"strings"
 	"time"
@@ -24,20 +24,20 @@ const (
 
 type apcProvider struct {
 	ctx           context.Context
-	host          *entities.ApcHost
+	host          *domain.ApcHost
 	periodTicker  *time.Ticker
 	activeSession net.Conn
 	events        []string
 	status        []string
-	tuple         entities.ChannelTuple
+	tuple         domain.ChannelTuple
 }
 
 var (
-	_ interfaces.ApcProvider = (*apcProvider)(nil)
-	_ interfaces.Provider    = (*apcProvider)(nil)
+	_ ports.ApcProvider = (*apcProvider)(nil)
+	_ ports.Provider    = (*apcProvider)(nil)
 )
 
-func NewAPCProvider(ctx context.Context, host *entities.ApcHost, tuple entities.ChannelTuple) (interfaces.ApcProvider, error) {
+func NewAPCProvider(ctx context.Context, host *domain.ApcHost, tuple domain.ChannelTuple) (ports.ApcProvider, error) {
 	provider := &apcProvider{
 		ctx:    ctx,
 		host:   host,
@@ -45,7 +45,12 @@ func NewAPCProvider(ctx context.Context, host *entities.ApcHost, tuple entities.
 		events: []string{},
 		tuple:  tuple,
 	}
-	err := provider.begin()
+	err := provider.connect()
+	if err != nil {
+		commons.DebugLog("begin() connect Error: ", err.Error(), ", host: ", host.Name)
+	} else {
+		provider.periodicUpdateStart()
+	}
 	if err != nil {
 		return nil, err
 	} else {
@@ -74,19 +79,6 @@ func (a *apcProvider) connect() error {
 		commons.DebugLog("connect() dial Error: ", err.Error(), ", host: ", a.host.Name, ", context: ", ctx.Err())
 	} else {
 		a.activeSession = conn
-		//a.host.State = commons.HostStatusOnline
-	}
-	return err
-}
-
-// begin connects to apc server and starts periodic data collection
-func (a *apcProvider) begin() error {
-
-	err := a.connect()
-	if err != nil {
-		commons.DebugLog("begin() connect Error: ", err.Error(), ", host: ", a.host.Name)
-	} else {
-		a.periodicUpdateStart()
 	}
 	return err
 }
@@ -110,7 +102,7 @@ func (a *apcProvider) periodicUpdateStart() {
 
 			case <-s.periodTicker.C:
 				_ = s.request(commandStatus, a.tuple.Status)
-				time.Sleep(16 * time.Millisecond)
+				time.Sleep(50 * time.Millisecond)
 				_ = s.request(commandEvents, a.tuple.Events)
 			}
 		}
@@ -122,21 +114,6 @@ func (a *apcProvider) periodicUpdateStart() {
 func (a *apcProvider) periodicUpdateStop() {
 	commons.DebugLog("periodicUpdateStop(", a.host.Name, ") called.")
 	a.periodTicker.Stop()
-}
-
-// Shutdown closes the apc connection and stops go routines
-func (a *apcProvider) Shutdown() {
-	commons.DebugLog("ApcProvider::Shutdown(", a.host.Name, ") called.")
-	if a.activeSession == nil {
-		return
-	}
-
-	a.periodicUpdateStop()
-	err := a.activeSession.Close()
-	if err != nil {
-		commons.DebugLog("ApcProvider::Shutdown()::Close(", a.host.Name, ") Error: ", err.Error())
-	}
-	a.activeSession = nil
 }
 
 func (a *apcProvider) addEvent(newValue string) {
@@ -247,7 +224,7 @@ transact:
 		}
 		time.Sleep(64 * time.Millisecond) // let apcupsd breath a little
 	}
-	a.activeSession.Close()
+	_ = a.activeSession.Close()
 	a.activeSession = nil
 
 	if command == commandEvents {
@@ -257,4 +234,19 @@ transact:
 	}
 
 	return err
+}
+
+// Close closes the apc connection and stops go routines
+func (a *apcProvider) Close() {
+	commons.DebugLog("ApcProvider::Close(", a.host.Name, ") called.")
+	if a.activeSession == nil {
+		return
+	}
+
+	a.periodicUpdateStop()
+	err := a.activeSession.Close()
+	if err != nil {
+		commons.DebugLog("ApcProvider::Close()::Close(", a.host.Name, ") Error: ", err.Error())
+	}
+	a.activeSession = nil
 }

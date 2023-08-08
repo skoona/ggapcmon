@@ -8,11 +8,11 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/skoona/ggapcmon/internal/commons"
-	"github.com/skoona/ggapcmon/internal/entities"
+	"github.com/skoona/ggapcmon/internal/core/domain"
 	"image/color"
 )
 
-func (v *viewProvider) Performance(bond *entities.UpsStatusValueBindings) *fyne.Container {
+func (v *viewProvider) Performance(bond *domain.UpsStatusValueBindings) *fyne.Container {
 	desc := canvas.NewText("Performance Summary", theme.PrimaryColor())
 	desc.Alignment = fyne.TextAlignCenter
 	desc.TextStyle = fyne.TextStyle{Italic: true}
@@ -75,7 +75,7 @@ func (v *viewProvider) Performance(bond *entities.UpsStatusValueBindings) *fyne.
 
 	return titleBorder
 }
-func (v *viewProvider) Metrics(bond *entities.UpsStatusValueBindings) *fyne.Container {
+func (v *viewProvider) Metrics(bond *domain.UpsStatusValueBindings) *fyne.Container {
 	var desc *canvas.Text
 	frame := canvas.NewRectangle(color.Transparent)
 	frame.StrokeWidth = 6
@@ -128,7 +128,7 @@ func (v *viewProvider) Metrics(bond *entities.UpsStatusValueBindings) *fyne.Cont
 	)
 	return titleBorder
 }
-func (v *viewProvider) Software(bond *entities.UpsStatusValueBindings) *fyne.Container {
+func (v *viewProvider) Software(bond *domain.UpsStatusValueBindings) *fyne.Container {
 	desc := canvas.NewText("Software Information ", theme.PrimaryColor())
 	desc.Alignment = fyne.TextAlignCenter
 	desc.TextStyle = fyne.TextStyle{Italic: true}
@@ -204,7 +204,7 @@ func (v *viewProvider) Software(bond *entities.UpsStatusValueBindings) *fyne.Con
 
 	return titleBorder
 }
-func (v *viewProvider) Product(bond *entities.UpsStatusValueBindings) *fyne.Container {
+func (v *viewProvider) Product(bond *domain.UpsStatusValueBindings) *fyne.Container {
 	desc := canvas.NewText("Product Information ", theme.PrimaryColor())
 	desc.Alignment = fyne.TextAlignCenter
 	desc.TextStyle = fyne.TextStyle{Italic: true}
@@ -264,10 +264,10 @@ func (v *viewProvider) Product(bond *entities.UpsStatusValueBindings) *fyne.Cont
 }
 
 // DetailPage manages the different cards in the Details view based on type of ups node
-func (v *viewProvider) DetailPage(params chan map[string]string, bond *entities.UpsStatusValueBindings) *fyne.Container {
+func (v *viewProvider) DetailPage(params chan map[string]string, bond *domain.UpsStatusValueBindings) *fyne.Container {
 	page := container.NewGridWithColumns(2)
 
-	go func(bondData *entities.UpsStatusValueBindings, status chan map[string]string, content *fyne.Container) {
+	go func(bondData *domain.UpsStatusValueBindings, status chan map[string]string, content *fyne.Container) {
 		oneShot := true
 		commons.DebugLog("ViewProvider::UpsStatusValueBindings[", bondData.Host.Name, "] BEGIN")
 		// wait for a msg to determine what type of UPS,

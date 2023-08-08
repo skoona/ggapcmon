@@ -1,5 +1,5 @@
-package interfaces
+package ports
 
 type ApcProvider interface {
-	Shutdown()
+	Provider
 }

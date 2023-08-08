@@ -1,4 +1,4 @@
-package providers
+package repository
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
 	"github.com/skoona/ggapcmon/internal/commons"
-	"github.com/skoona/ggapcmon/internal/entities"
-	"github.com/skoona/ggapcmon/internal/interfaces"
+	"github.com/skoona/ggapcmon/internal/core/domain"
+	"github.com/skoona/ggapcmon/internal/core/ports"
 	"net"
 	"time"
 )
@@ -16,29 +16,23 @@ const (
 	HostLocal     = "127.0.0.1:3551"
 	HostLocalName = "Local"
 	HostsPrefs    = "ApcHost"
-	HubHostsPrefs = "HubHost"
 )
 
 type config struct {
-	hosts map[string]*entities.ApcHost
-	hubs  []*entities.HubHost
+	hosts map[string]*domain.ApcHost
 	prefs fyne.Preferences
 }
 
-var _ interfaces.Configuration = (*config)(nil)
-var _ interfaces.Provider = (*config)(nil)
+var _ ports.Configuration = (*config)(nil)
+var _ ports.Provider = (*config)(nil)
 
-func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
+func NewConfig(prefs fyne.Preferences) (ports.Configuration, error) {
 	var err error
-	var hosts map[string]*entities.ApcHost
-	var hubHosts []*entities.HubHost
+	var hosts map[string]*domain.ApcHost
 
-	defaultHosts := map[string]*entities.ApcHost{
+	defaultHosts := map[string]*domain.ApcHost{
 		// graph-30 = 15 hours @ 15 network-sec
-		HostLocalName: entities.NewApcHost(HostLocalName, HostLocal, 10, 5, true, true),
-	}
-	defaultHubHosts := []*entities.HubHost{
-		entities.NewHubHost("Scotts", "10.100.1.41", "a79c07db-9178-4976-bd10-428aa0d3d159", "10.100.1.183"),
+		HostLocalName: domain.NewApcHost(HostLocalName, HostLocal, 10, 5, true, true),
 	}
 
 	commons.DebugLog("Default IP: ", commons.DefaultIp())
@@ -74,27 +68,8 @@ func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 		h.Bcable = binding.NewString()
 	}
 
-	hubHostString := prefs.String(HubHostsPrefs)
-	if hubHostString != "" {
-		commons.DebugLog("NewConfig() load HubHost preferences succeeded ")
-		err = json.Unmarshal([]byte(hubHostString), &hubHosts)
-		if err != nil {
-			commons.DebugLog("NewConfig() Unmarshal HubHosts failed: ", err.Error())
-		}
-	}
-	if len(hubHosts) == 0 {
-		commons.DebugLog("NewConfig() load HubHost preferences failed using defaults ")
-		save, err := json.Marshal(defaultHubHosts)
-		if err != nil {
-			commons.DebugLog("NewConfig() Marshal saving HubHost prefs failed: ", err.Error())
-		}
-		prefs.SetString(HubHostsPrefs, string(save))
-		hubHosts = defaultHubHosts
-	}
-
 	cfg := &config{
 		hosts: hosts,
-		hubs:  hubHosts,
 		prefs: prefs,
 	}
 
@@ -106,37 +81,25 @@ func NewConfig(prefs fyne.Preferences) (interfaces.Configuration, error) {
 }
 func (c *config) ResetConfig() {
 	c.prefs.SetString(HostsPrefs, "")
-	c.prefs.SetString(HubHostsPrefs, "")
 }
-func (c *config) HostByName(hostName string) *entities.ApcHost {
+func (c *config) HostByName(hostName string) *domain.ApcHost {
 	return c.hosts[hostName]
 }
-func (c *config) Hosts() []*entities.ApcHost {
-	var r []*entities.ApcHost
+func (c *config) Hosts() []*domain.ApcHost {
+	var r []*domain.ApcHost
 	for _, v := range c.hosts {
 		r = append(r, v)
 	}
 	return r
 }
-func (c *config) HubHosts() []*entities.HubHost {
-	return c.hubs
-}
-func (c *config) Apply(h *entities.ApcHost) interfaces.Configuration {
+func (c *config) Apply(h *domain.ApcHost) ports.Configuration {
 	c.hosts[h.Name] = h
 	_ = c.VerifyHostConnection(h)
 	return c
 }
-func (c *config) ApplyHub(h *entities.HubHost) interfaces.Configuration {
-	c.hubs = append(c.hubs, h)
-	return c
-}
-func (c *config) AddHost(host *entities.ApcHost) {
+func (c *config) AddHost(host *domain.ApcHost) {
 	c.Apply(host).Save()
 	commons.DebugLog("Config::AddHost() saved: .", host)
-}
-func (c *config) AddHubHost(host *entities.HubHost) {
-	c.ApplyHub(host).SaveHubs()
-	commons.DebugLog("Config::AddHubHost() saved: .", host)
 }
 func (c *config) Save() {
 	save, err := json.Marshal(c.hosts)
@@ -144,14 +107,6 @@ func (c *config) Save() {
 		commons.DebugLog("Configuration::Save() marshal apcHosts failed: ", err.Error())
 	} else {
 		c.prefs.SetString(HostsPrefs, string(save))
-	}
-}
-func (c *config) SaveHubs() {
-	save, err := json.Marshal(c.hubs)
-	if err != nil {
-		commons.DebugLog("Configuration::Save() marshal hubHosts failed: ", err.Error())
-	} else {
-		c.prefs.SetString(HubHostsPrefs, string(save))
 	}
 }
 func (c *config) Remove(hostName string) {
@@ -166,12 +121,12 @@ func (c *config) HostKeys() []string {
 }
 
 // Shutdown compliance with Provider Interface
-func (c *config) Shutdown() {
-	commons.DebugLog("Config::Shutdown() called.")
+func (c *config) Close() {
+	commons.DebugLog("Config::Close() called.")
 }
 
 // VerifyHostConnection compliance with Provider Interface
-func (c *config) VerifyHostConnection(h *entities.ApcHost) error {
+func (c *config) VerifyHostConnection(h *domain.ApcHost) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

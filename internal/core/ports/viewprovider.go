@@ -1,7 +1,7 @@
-package interfaces
+package ports
 
 type ViewProvider interface {
 	ShowPrefsPage()
 	ShowMainPage()
-	Shutdown()
+	Provider
 }

@@ -1,12 +1,9 @@
 package commons
 
 import (
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
-	"image/color"
 )
 
 func SknSelectResource(alias string) fyne.Resource {
@@ -24,26 +21,6 @@ func SknSelectThemedImage(alias string) *canvas.Image {
 }
 func SknSelectThemedInvertedImage(alias string) *canvas.Image {
 	return sknImageByName(alias, true, true)
-}
-
-// SknLoadImageFromURI loads an image or svg from filesystem
-func SknLoadImageFromURI(u fyne.URI, themed bool) fyne.CanvasObject {
-	read, err := storage.Reader(u)
-	if err != nil {
-		fmt.Println("Error opening image", err)
-		return canvas.NewRectangle(color.Black)
-	}
-	res, err := storage.LoadResourceFromURI(read.URI())
-	if err != nil {
-		fmt.Println("Error reading image", err)
-		return canvas.NewRectangle(color.Black)
-	}
-	img := canvas.NewImageFromResource(res)
-	img.FillMode = canvas.ImageFillContain
-	if themed {
-		img.Resource = theme.NewThemedResource(img.Resource)
-	}
-	return img
 }
 
 func sknImageByName(alias string, themed bool, inverted bool) *canvas.Image {

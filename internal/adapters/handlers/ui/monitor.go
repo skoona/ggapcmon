@@ -8,8 +8,8 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/skoona/ggapcmon/internal/commons"
-	"github.com/skoona/ggapcmon/internal/entities"
-	"github.com/skoona/ggapcmon/internal/interfaces"
+	"github.com/skoona/ggapcmon/internal/core/domain"
+	"github.com/skoona/ggapcmon/internal/core/ports"
 	"github.com/skoona/sknlinechart"
 	"strconv"
 	"strings"
@@ -26,7 +26,7 @@ func (v *viewProvider) MonitorPage() *fyne.Container {
 
 	for _, host := range v.cfg.Hosts() {
 		if host.Enabled {
-			v.bondedUpsStatus[host.Name] = entities.NewUpsStatusValueBindings(host)
+			v.bondedUpsStatus[host.Name] = domain.NewUpsStatusValueBindings(host)
 			status := widget.NewMultiLineEntry()
 			status.SetPlaceHolder("StandBy: no status has been received.")
 			status.TextStyle = fyne.TextStyle{Monospace: true}
@@ -36,19 +36,14 @@ func (v *viewProvider) MonitorPage() *fyne.Container {
 			events.TextStyle = fyne.TextStyle{Monospace: true}
 
 			// GraphSamplingPeriod for Charts
-			v.chartPageData[host.Name] = map[string]interfaces.GraphPointSmoothing{}
+			v.chartPageData[host.Name] = map[string]ports.GraphPointSmoothing{}
 			for _, key := range v.chartKeys {
-				intf := entities.NewGraphAverage(host.Name, key, host.GraphingSamplePeriod)
+				intf := domain.NewGraphAverage(host.Name, key, host.GraphingSamplePeriod)
 				v.chartPageData[host.Name][key] = intf
 			}
 			// for chart page updates
 			data := map[string][]*sknlinechart.ChartDatapoint{}
-			chart, err := sknlinechart.NewLineChart(
-				host.Name,
-				"",
-				10,
-				&data,
-			)
+			chart, err := sknlinechart.New(host.Name, "", 10, &data)
 			if err != nil {
 				dialog.ShowError(err, v.mainWindow)
 				commons.ShutdownSignals <- syscall.SIGINT
@@ -76,8 +71,8 @@ func (v *viewProvider) MonitorPage() *fyne.Container {
 }
 
 // handleUpdatesForMonitorPage does exactly that
-func (v *viewProvider) handleUpdatesForMonitorPage(host *entities.ApcHost, service interfaces.Service, status *widget.Entry, events *widget.Entry, chart sknlinechart.LineChart, kChan chan map[string]string) {
-	go func(h *entities.ApcHost, svc interfaces.Service, st *widget.Entry, ev *widget.Entry, chart sknlinechart.LineChart, knowledge chan map[string]string) {
+func (v *viewProvider) handleUpdatesForMonitorPage(host *domain.ApcHost, service ports.Service, status *widget.Entry, events *widget.Entry, chart sknlinechart.LineChart, kChan chan map[string]string) {
+	go func(h *domain.ApcHost, svc ports.Service, st *widget.Entry, ev *widget.Entry, chart sknlinechart.LineChart, knowledge chan map[string]string) {
 		commons.DebugLog("ViewProvider::HandleUpdatesForMonitorPage[", h.Name, "] BEGIN")
 		rcvTuple := svc.MessageChannelByName(h.Name)
 		var stBuild strings.Builder

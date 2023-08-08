@@ -9,7 +9,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/skoona/ggapcmon/internal/commons"
-	"github.com/skoona/ggapcmon/internal/entities"
+	"github.com/skoona/ggapcmon/internal/core/domain"
 	"image/color"
 	"strconv"
 	"time"
@@ -31,20 +31,53 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 
 	table := widget.NewTable(
 		func() (int, int) { // length
-			return len(v.prfHostKeys), 7
+			return len(v.prfHostKeys) + 1, 7
 		},
 		func() fyne.CanvasObject { // created
-			i := widget.NewIcon(theme.StorageIcon())
+			//i := widget.NewIcon(theme.StorageIcon())
+			i := commons.SknSelectThemedImage("charging")
 			i.Hide()
 			l := widget.NewLabel("0123456789")
 			return container.NewHBox(i, l) // issue container minSize is 0
 		},
 		func(id widget.TableCellID, object fyne.CanvasObject) { // update
+			// ICON - STATUS, ddd Outages, Last on dateString,
+			//                LineV , DDD % percent Charge
 			// Row, Col
-			host := v.cfg.HostByName(v.prfHostKeys[id.Row])
+			if id.Row == 0 { // headers
+				object.(*fyne.Container).Objects[0].Hide()
+				switch id.Col {
+				case 0:
+					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("State")
+					object.(*fyne.Container).Objects[1].Show()
+				case 1:
+					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("Enabled")
+					object.(*fyne.Container).Objects[1].Show()
+				case 2:
+					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("Tray")
+					object.(*fyne.Container).Objects[1].Show()
+				case 3:
+					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("Name")
+					object.(*fyne.Container).Objects[1].Show()
+				case 4:
+					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("IpAddress")
+					object.(*fyne.Container).Objects[1].Show()
+				case 5:
+					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("NetPrd")
+					object.(*fyne.Container).Objects[1].Show()
+				case 6:
+					object.(*fyne.Container).Objects[1].(*widget.Label).SetText("GraphPrd")
+					object.(*fyne.Container).Objects[1].Show()
+				}
+				return
+			}
+			// Row, Col
+			host := v.cfg.HostByName(v.prfHostKeys[id.Row-1])
 			switch id.Col {
 			case 0: // State
-				object.(*fyne.Container).Objects[0].(*widget.Icon).SetResource(commons.SknSelectResource(host.State))
+				object.(*fyne.Container).Objects[0].(*canvas.Image).Resource = commons.SknSelectThemedResource(host.State)
+				object.(*fyne.Container).Objects[0].(*canvas.Image).Resize(fyne.NewSize(40, 40))
+				//object.(*fyne.Container).Objects[0].(*widget.Icon).SetResource(commons.SknSelectResource(host.State))
 				object.(*fyne.Container).Objects[1].Hide()
 				object.(*fyne.Container).Objects[0].Refresh()
 				object.(*fyne.Container).Objects[0].Show()
@@ -137,7 +170,7 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 		if v.prfHost.Name != dName.Text {
 			nx, _ := strconv.Atoi(nPeriod.Text)
 			gx, _ := strconv.Atoi(gPeriod.Text)
-			v.prfHost = entities.NewApcHost(
+			v.prfHost = domain.NewApcHost(
 				dName.Text,
 				dHost.Text,
 				time.Duration(nx),
@@ -161,10 +194,10 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 	}
 
 	table.OnSelected = func(id widget.TableCellID) {
-		if id.Row > len(v.prfHostKeys) {
+		if id.Row-1 > len(v.prfHostKeys) {
 			v.prfHostKeys = v.cfg.HostKeys()
 		}
-		v.prfHost = v.cfg.HostByName(v.prfHostKeys[id.Row])
+		v.prfHost = v.cfg.HostByName(v.prfHostKeys[id.Row-1])
 
 		dName.Text = v.prfHost.Name
 		dHost.Text = v.prfHost.IpAddress
@@ -176,15 +209,15 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 		enable.Checked = v.prfHost.Enabled
 
 		form.Refresh()
-		v.prfStatusLine.SetText(fmt.Sprintf("Selected row:%d, col:%d, for host:%s", id.Row, id.Col, v.cfg.HostByName(v.prfHostKeys[id.Row]).Name))
+		v.prfStatusLine.SetText(fmt.Sprintf("Selected row:%d, col:%d, for host:%s", id.Row-1, id.Col, v.cfg.HostByName(v.prfHostKeys[id.Row-1]).Name))
 	}
-	table.SetColumnWidth(0, 24)  // icon
+	table.SetColumnWidth(0, 40)  // icon
 	table.SetColumnWidth(1, 80)  // enabled
 	table.SetColumnWidth(2, 104) // use tray
 	table.SetColumnWidth(3, 132) // Name
 	table.SetColumnWidth(4, 132) // Ip
-	table.SetColumnWidth(5, 32)  // net period
-	table.SetColumnWidth(6, 32)  // graph period
+	table.SetColumnWidth(5, 80)  // net period
+	table.SetColumnWidth(6, 80)  // graph period
 
 	page := container.NewGridWithColumns(1,
 		settings.NewSettings().LoadAppearanceScreen(v.mainWindow),

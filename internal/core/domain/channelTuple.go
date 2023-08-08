@@ -1,4 +1,4 @@
-package entities
+package domain
 
 type ChannelTuple struct {
 	Events chan []string

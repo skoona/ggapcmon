@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	fyne.io/fyne/v2 v2.3.5
-	github.com/skoona/sknlinechart v1.6.3
+	github.com/skoona/sknlinechart v1.6.5
 )
 
 require (

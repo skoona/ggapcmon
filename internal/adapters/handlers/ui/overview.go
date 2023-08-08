@@ -18,7 +18,8 @@ func (v *viewProvider) OverviewPage() *fyne.Container {
 			return len(v.prfHostKeys) + 1, 3
 		},
 		func() fyne.CanvasObject { // created
-			i := widget.NewIcon(theme.StorageIcon())
+			//i := widget.NewIcon(theme.StorageIcon())
+			i := commons.SknSelectThemedImage("charging")
 			i.Hide()
 
 			l := widget.NewRichTextFromMarkdown("")
@@ -47,8 +48,8 @@ func (v *viewProvider) OverviewPage() *fyne.Container {
 			host := v.cfg.HostByName(v.prfHostKeys[id.Row-1])
 			switch id.Col {
 			case 0: // State
-				object.(*fyne.Container).Objects[0].(*widget.Icon).SetResource(commons.SknSelectThemedResource(host.State))
-				object.(*fyne.Container).Objects[0].(*widget.Icon).Resize(fyne.NewSize(40, 40))
+				object.(*fyne.Container).Objects[0].(*canvas.Image).Resource = commons.SknSelectThemedResource(host.State)
+				object.(*fyne.Container).Objects[0].(*canvas.Image).Resize(fyne.NewSize(40, 40))
 				object.(*fyne.Container).Objects[0].Show()
 				object.(*fyne.Container).Objects[1].Hide()
 

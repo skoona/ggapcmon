@@ -5,34 +5,34 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"github.com/skoona/ggapcmon/internal/commons"
-	"github.com/skoona/ggapcmon/internal/entities"
-	"github.com/skoona/ggapcmon/internal/interfaces"
+	"github.com/skoona/ggapcmon/internal/core/domain"
+	"github.com/skoona/ggapcmon/internal/core/ports"
 )
 
 // viewProvider control structure for view management
 type viewProvider struct {
 	ctx             context.Context
-	cfg             interfaces.Configuration
-	service         interfaces.Service
+	cfg             ports.Configuration
+	service         ports.Service
 	mainWindow      fyne.Window
 	prefsWindow     fyne.Window
 	overviewTable   *widget.Table
 	prfStatusLine   *widget.Label
 	chartKeys       []string
-	chartPageData   map[string]map[string]interfaces.GraphPointSmoothing
-	bondedUpsStatus map[string]*entities.UpsStatusValueBindings
+	chartPageData   map[string]map[string]ports.GraphPointSmoothing
+	bondedUpsStatus map[string]*domain.UpsStatusValueBindings
 	prfHostKeys     []string
-	prfHost         *entities.ApcHost
+	prfHost         *domain.ApcHost
 }
 
-// compiler helpers to insure interfaces requirements are meet
+// compiler helpers to insure ports requirements are meet
 var (
-	_ interfaces.ViewProvider = (*viewProvider)(nil)
-	_ interfaces.Provider     = (*viewProvider)(nil)
+	_ ports.ViewProvider = (*viewProvider)(nil)
+	_ ports.Provider     = (*viewProvider)(nil)
 )
 
 // NewViewProvider manages all UI views and implements the ViewProvider Interface
-func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service interfaces.Service) interfaces.ViewProvider {
+func NewViewProvider(ctx context.Context, cfg ports.Configuration, service ports.Service) ports.ViewProvider {
 	hk := cfg.HostKeys()
 	h := cfg.HostByName(hk[0])
 	stLine := widget.NewLabel("click entry in table to edit, or click add to add.")
@@ -46,9 +46,9 @@ func NewViewProvider(ctx context.Context, cfg interfaces.Configuration, service 
 		prfHost:         h,
 		prfHostKeys:     hk,
 		prfStatusLine:   stLine,
-		chartPageData:   map[string]map[string]interfaces.GraphPointSmoothing{}, // [host][chartkey]struct
+		chartPageData:   map[string]map[string]ports.GraphPointSmoothing{}, // [host][chartkey]struct
 		chartKeys:       []string{"LINEV", "LOADPCT", "BCHARGE", "CUMONBATT", "TIMELEFT"},
-		bondedUpsStatus: map[string]*entities.UpsStatusValueBindings{},
+		bondedUpsStatus: map[string]*domain.UpsStatusValueBindings{},
 	}
 	view.mainWindow.Resize(fyne.NewSize(632, 432))
 	view.mainWindow.SetCloseIntercept(func() { view.mainWindow.Hide() })
@@ -80,9 +80,9 @@ func (v *viewProvider) ShowPrefsPage() {
 	v.prefsWindow.Show()
 }
 
-// Shutdown closes all go routine
-func (v *viewProvider) Shutdown() {
-	commons.DebugLog("ViewProvider::Shutdown() called.")
+// Close closes all go routine
+func (v *viewProvider) Close() {
+	commons.DebugLog("ViewProvider::Close() called.")
 }
 
 // verifyHostConnection attempts to connect to selected host
