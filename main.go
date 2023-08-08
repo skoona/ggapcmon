@@ -43,6 +43,7 @@ func main() {
 		commons.ShutdownSignals <- syscall.SIGINT
 		cfg.ResetConfig()
 	}
+	//cfg.ResetConfig()
 
 	service, err := services.NewService(ctx, cfg)
 	if err != nil {

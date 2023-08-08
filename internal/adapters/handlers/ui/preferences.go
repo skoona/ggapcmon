@@ -138,6 +138,10 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 	dHost := widget.NewEntry()
 	dHost.SetText(v.prfHost.IpAddress)
 
+	dId := widget.NewEntry()
+	dId.SetText(v.prfHost.Id)
+	dId.Disable()
+
 	dName := widget.NewEntry()
 	dName.SetText(v.prfHost.Name)
 
@@ -163,11 +167,12 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 			{Text: "network sampling period", Widget: nPeriod},
 			{Text: "use tray icon", Widget: trayIcon},
 			{Text: "is enabled", Widget: enable},
+			{Text: "ID", Widget: dId},
 		},
 		SubmitText: "Apply",
 	}
 	form.OnSubmit = func() { // Apply optional, handle form submission
-		if v.prfHost.Name != dName.Text {
+		if dId.Text == "" {
 			nx, _ := strconv.Atoi(nPeriod.Text)
 			gx, _ := strconv.Atoi(gPeriod.Text)
 			v.prfHost = domain.NewApcHost(
@@ -194,11 +199,17 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 	}
 
 	table.OnSelected = func(id widget.TableCellID) {
+		if id.Row == 0 {
+			v.prfStatusLine.SetText(fmt.Sprintf("header column: %d selected", id.Col))
+			return
+		}
+
 		if id.Row-1 > len(v.prfHostKeys) {
 			v.prfHostKeys = v.cfg.HostKeys()
 		}
 		v.prfHost = v.cfg.HostByName(v.prfHostKeys[id.Row-1])
 
+		dId.SetText(v.prfHost.Id)
 		dName.Text = v.prfHost.Name
 		dHost.Text = v.prfHost.IpAddress
 		z := strconv.Itoa(int(v.prfHost.NetworkSamplePeriod))
@@ -233,14 +244,15 @@ func (v *viewProvider) PreferencesPage() *fyne.Container {
 			tDesc,
 			container.NewHBox(
 				container.NewHBox(
-					widget.NewButtonWithIcon("add selected", theme.ContentAddIcon(), func() {
+					widget.NewButtonWithIcon("add", theme.ContentAddIcon(), func() {
+						dId.SetText("")
 						form.OnSubmit()
 						v.prefsAddAction()
 					}),
-					widget.NewButtonWithIcon("del selected", theme.ContentRemoveIcon(), func() {
+					widget.NewButtonWithIcon("del", theme.ContentRemoveIcon(), func() {
 						v.prefsDelAction()
 					}),
-					widget.NewButtonWithIcon("test selected", theme.ContentRemoveIcon(), func() {
+					widget.NewButtonWithIcon("test", theme.QuestionIcon(), func() {
 						_ = v.verifyHostConnection()
 						table.Refresh()
 					}),

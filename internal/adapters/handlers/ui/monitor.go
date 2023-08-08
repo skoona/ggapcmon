@@ -56,7 +56,7 @@ func (v *viewProvider) MonitorPage() *fyne.Container {
 			tab := container.NewTabItemWithIcon(host.Name, theme.InfoIcon(),
 				container.NewAppTabs(
 					container.NewTabItemWithIcon("History", theme.HistoryIcon(), chart),
-					container.NewTabItemWithIcon("Detailed", theme.VisibilityIcon(), v.DetailPage(knowledge, v.bondedUpsStatus[host.Name])),
+					container.NewTabItemWithIcon("Detailed", theme.VisibilityIcon(), container.NewScroll(v.DetailPage(knowledge, v.bondedUpsStatus[host.Name]))),
 					container.NewTabItemWithIcon("Status", theme.ListIcon(), status),
 					container.NewTabItemWithIcon("Events", theme.WarningIcon(), events),
 				),

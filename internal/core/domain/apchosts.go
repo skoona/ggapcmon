@@ -2,11 +2,13 @@ package domain
 
 import (
 	"fyne.io/fyne/v2/data/binding"
+	"github.com/google/uuid"
 	"github.com/skoona/ggapcmon/internal/commons"
 	"time"
 )
 
 type ApcHost struct {
+	Id                   string
 	IpAddress            string
 	Name                 string
 	NetworkSamplePeriod  time.Duration
@@ -27,6 +29,7 @@ type ApcHost struct {
 
 func NewApcHost(name, ip string, networkSamplePeriod, graphingSamplePeriod time.Duration, enable, trayIcon bool) *ApcHost {
 	return &ApcHost{
+		Id:                   uuid.New().String(),
 		IpAddress:            ip,
 		Name:                 name,
 		NetworkSamplePeriod:  networkSamplePeriod,

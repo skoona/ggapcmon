@@ -9,6 +9,12 @@ import (
 	"github.com/skoona/ggapcmon/internal/core/ports"
 )
 
+type ViewProvider interface {
+	ShowPrefsPage()
+	ShowMainPage()
+	ports.Provider
+}
+
 // viewProvider control structure for view management
 type viewProvider struct {
 	ctx             context.Context
@@ -27,12 +33,12 @@ type viewProvider struct {
 
 // compiler helpers to insure ports requirements are meet
 var (
-	_ ports.ViewProvider = (*viewProvider)(nil)
-	_ ports.Provider     = (*viewProvider)(nil)
+	_ ViewProvider   = (*viewProvider)(nil)
+	_ ports.Provider = (*viewProvider)(nil)
 )
 
 // NewViewProvider manages all UI views and implements the ViewProvider Interface
-func NewViewProvider(ctx context.Context, cfg ports.Configuration, service ports.Service) ports.ViewProvider {
+func NewViewProvider(ctx context.Context, cfg ports.Configuration, service ports.Service) ViewProvider {
 	hk := cfg.HostKeys()
 	h := cfg.HostByName(hk[0])
 	stLine := widget.NewLabel("click entry in table to edit, or click add to add.")
@@ -50,7 +56,7 @@ func NewViewProvider(ctx context.Context, cfg ports.Configuration, service ports
 		chartKeys:       []string{"LINEV", "LOADPCT", "BCHARGE", "CUMONBATT", "TIMELEFT"},
 		bondedUpsStatus: map[string]*domain.UpsStatusValueBindings{},
 	}
-	view.mainWindow.Resize(fyne.NewSize(632, 432))
+	view.mainWindow.Resize(fyne.NewSize(960, 480))
 	view.mainWindow.SetCloseIntercept(func() { view.mainWindow.Hide() })
 	view.mainWindow.SetMaster()
 	view.mainWindow.SetIcon(commons.SknSelectThemedResource(commons.AppIcon))
@@ -107,8 +113,6 @@ func (v *viewProvider) prefsAddAction() {
 func (v *viewProvider) prefsDelAction() {
 	n := v.prfHost.Name
 	v.cfg.Remove(v.prfHost.Name)
-	v.prfHostKeys = v.cfg.HostKeys()
-	v.prfHost = v.cfg.HostByName(v.prfHostKeys[0])
 	v.ShowPrefsPage()
 	v.prfStatusLine.SetText("Host " + n + " was removed")
 }

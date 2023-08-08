@@ -72,7 +72,7 @@ func (v *viewProvider) OverviewPage() *fyne.Container {
 				} else {
 					x := z
 					a, _ := host.Bloadpct.Get()
-					b, _ := host.Bnumxfers.Get()
+					b, _ := host.Bnumxfers.Get() // FIX SOMETHING: why null error here
 					c, _ := host.Bxonbatt.Get()
 					d, _ := host.Blinev.Get()
 					e, _ := host.Bbcharge.Get()
